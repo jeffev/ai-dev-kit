@@ -18,6 +18,11 @@ run_universal_rules() {
   fi
 
   _check_todo_fixme "$file_path" "$content_file"
+
+  # Only check emoji in source code files (not docs, configs, or scripts)
+  if echo "$file_path" | grep -qiE '\.(java|ts|tsx|js|jsx|py)$'; then
+    _check_emoji "$file_path" "$content_file"
+  fi
 }
 
 _check_hardcoded_secrets() {
@@ -57,5 +62,19 @@ _check_todo_fixme() {
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
     FINDINGS+=("LOW|U-002|$file_path|$line_num|TODO/FIXME found in new code. Resolve before merging.|")
+  fi
+}
+
+_check_emoji() {
+  local file_path="$1"
+  local content_file="$2"
+
+  local match
+  # Match common emoji Unicode ranges (emoticons, symbols, transport, misc)
+  match=$(grep -inP '[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{1F900}-\x{1F9FF}\x{1FA00}-\x{1FAFF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]' "$content_file" 2>/dev/null | head -1)
+  if [[ -n "$match" ]]; then
+    local line_num
+    line_num=$(echo "$match" | grep -oP '^\d+')
+    FINDINGS+=("MEDIUM|U-003|$file_path|$line_num|Emoji found in source code. Use plain text for log messages, comments, and strings.|")
   fi
 }

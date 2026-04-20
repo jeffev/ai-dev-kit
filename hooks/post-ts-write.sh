@@ -44,9 +44,9 @@ echo "[post-write] Type checking after edit: $(basename "$FILE_PATH")..."
 OUTPUT=$(npx tsc --noEmit -p "$TSCONFIG" 2>&1) && STATUS=0 || STATUS=$?
 
 if [[ $STATUS -eq 0 ]]; then
-  echo "[post-write] ✔ Types OK"
+  echo "[post-write] [OK] Types OK"
 else
-  echo "[post-write] ✘ Type errors:"
+  echo "[post-write] [FAIL] Type errors:"
   BASENAME=$(basename "$FILE_PATH")
   RELEVANT=$(echo "$OUTPUT" | grep "$BASENAME" | head -15)
   if [[ -n "$RELEVANT" ]]; then

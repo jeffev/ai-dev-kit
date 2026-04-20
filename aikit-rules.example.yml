@@ -6,37 +6,109 @@
 # pattern: regex compatible with grep -P
 
 rules:
-  # Example: block System.exit() anywhere in production code
+
+  # ── Java / Spring Boot ────────────────────────────────────────────────────
+
+  # Block System.exit() in production code
   - id: C-001
     severity: HIGH
     files: "*.java"
     pattern: 'System\.exit\('
-    message: "System.exit() must not be used in production. Throw a proper exception instead."
+    message: "System.exit() must not be used. Throw a proper exception instead."
 
-  # Example: ban imports from deprecated internal packages
+  # Ban imports from deprecated internal packages
   - id: C-002
     severity: MEDIUM
     files: "*.java"
     pattern: 'import com\.example\.legacy\.'
     message: "Deprecated legacy package. Use the equivalent classes in com.example.core."
 
-  # Example: ban raw fetch() calls in React components (use custom hooks instead)
+  # Require @Validated on @RestController classes (enforce JSR-303 validation)
   - id: C-003
     severity: MEDIUM
-    files: "*.tsx,*.ts"
-    pattern: '^\s*fetch\s*\('
-    message: "Use the custom useApi() hook instead of calling fetch() directly in components."
+    files: "*.java"
+    pattern: '@RestController'
+    message: "Add @Validated to @RestController classes to enable JSR-303 constraint validation on method parameters."
 
-  # Example: enforce safe DROP TABLE in SQL migrations
+  # Block ObjectMapper instantiation (must use the shared Spring bean)
   - id: C-004
+    severity: HIGH
+    files: "*.java"
+    pattern: 'new\s+ObjectMapper\s*\('
+    message: "Do not instantiate ObjectMapper directly. Inject the shared Spring bean via @Autowired ObjectMapper."
+
+  # Warn on Thread.sleep() in production code
+  - id: C-005
+    severity: MEDIUM
+    files: "*.java"
+    pattern: 'Thread\.sleep\s*\('
+    message: "Thread.sleep() in production code causes unpredictable delays. Use scheduled tasks or reactive delays instead."
+
+  # Block printStackTrace() — swallows structured logging
+  - id: C-006
+    severity: MEDIUM
+    files: "*.java"
+    pattern: '\.printStackTrace\s*\('
+    message: "Use log.error(\"message\", e) instead of printStackTrace(). Keeps logs structured and searchable."
+
+  # ── SQL / Flyway migrations ────────────────────────────────────────────────
+
+  # Prefer DROP TABLE IF EXISTS in migrations
+  - id: C-007
     severity: LOW
     files: "*.sql"
     pattern: 'DROP TABLE(?! IF EXISTS)'
     message: "Prefer DROP TABLE IF EXISTS to avoid errors on re-execution."
 
-  # Example: no console.error in test files (spy on it instead)
-  - id: C-005
+  # Warn on TRUNCATE in migrations (data loss risk)
+  - id: C-008
+    severity: HIGH
+    files: "*.sql"
+    pattern: '\bTRUNCATE\b'
+    message: "TRUNCATE in a migration will destroy all data in the table. Use DELETE with a WHERE clause if partial cleanup is intended."
+
+  # ── TypeScript / React / Angular ──────────────────────────────────────────
+
+  # Ban raw fetch() calls — use the shared API hook
+  - id: C-009
+    severity: MEDIUM
+    files: "*.tsx,*.ts"
+    pattern: '^\s*fetch\s*\('
+    message: "Use the custom useApi() hook instead of calling fetch() directly."
+
+  # Warn on @ts-ignore (hides real type errors)
+  - id: C-010
+    severity: MEDIUM
+    files: "*.ts,*.tsx"
+    pattern: '@ts-ignore'
+    message: "@ts-ignore suppresses type errors silently. Use @ts-expect-error with a comment, or fix the type."
+
+  # Ban localStorage for auth tokens
+  - id: C-011
+    severity: HIGH
+    files: "*.ts,*.tsx,*.js"
+    pattern: 'localStorage\.setItem\s*\(\s*[''"].*token'
+    message: "Do not store auth tokens in localStorage — vulnerable to XSS. Use httpOnly cookies or memory."
+
+  # No console.error in test files (spy on it instead)
+  - id: C-012
     severity: LOW
     files: "*.spec.ts"
-    pattern: 'console\.error\('
-    message: "In tests, spy on console.error instead of calling it directly."
+    pattern: 'console\.error\s*\('
+    message: "In tests, spy on console.error instead of calling it directly: jest.spyOn(console, 'error')."
+
+  # ── Universal ─────────────────────────────────────────────────────────────
+
+  # Warn on commented-out code blocks
+  - id: C-013
+    severity: LOW
+    files: "*.java,*.ts,*.tsx,*.js"
+    pattern: '^\s*//\s*(if|for|while|return|const|let|var|public|private)\b'
+    message: "Commented-out code detected. Remove it — use git history to recover old code if needed."
+
+  # Block .env files from being committed with real values
+  - id: C-014
+    severity: CRITICAL
+    files: ".env,.env.local,.env.production"
+    pattern: '=.+'
+    message: "Do not commit .env files with real values. Add them to .gitignore and use .env.example instead."

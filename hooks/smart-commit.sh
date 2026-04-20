@@ -12,9 +12,9 @@ C_RED='\033[0;31m'
 C_CYAN='\033[0;36m'
 C_BOLD='\033[1m'
 
-ok()   { echo -e "  ${C_GREEN}✔${C_RESET}  $*"; }
-warn() { echo -e "  ${C_YELLOW}⚠${C_RESET}  $*"; }
-fail() { echo -e "  ${C_RED}✘${C_RESET}  $*"; }
+ok()   { echo -e "  ${C_GREEN}[OK]${C_RESET}  $*"; }
+warn() { echo -e "  ${C_YELLOW}[WARN]${C_RESET}  $*"; }
+fail() { echo -e "  ${C_RED}[FAIL]${C_RESET}  $*"; }
 info() { echo -e "  ${C_CYAN}…${C_RESET}  $*"; }
 
 # ── Args ──────────────────────────────────────────────────────────────────────

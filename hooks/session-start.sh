@@ -41,9 +41,9 @@ if command -v docker &>/dev/null && [[ -f "docker-compose.yml" || -f "docker-com
       NAME=$(echo "$line" | awk '{print $1}')
       STATE=$(echo "$line" | awk '{$1=""; print $0}' | xargs)
       if echo "$STATE" | grep -qi "running\|up"; then
-        echo "  ├─ ✔ $NAME ($STATE)"
+        echo "  ├─ [UP] $NAME ($STATE)"
       else
-        echo "  ├─ ✘ $NAME ($STATE)"
+        echo "  ├─ [DOWN] $NAME ($STATE)"
       fi
     done <<< "$STATUS"
   fi
@@ -87,7 +87,7 @@ LOG=".claude/hooks/logs/audit.log"
 if [[ -f "$LOG" ]]; then
   TODAY=$(date '+%Y-%m-%d')
   TODAY_COUNT=$(grep -c "$TODAY" "$LOG" 2>/dev/null || echo 0)
-  [[ "$TODAY_COUNT" -gt 0 ]] && echo "  └─ ⚠  $TODAY_COUNT LOW finding(s) today in audit.log"
+  [[ "$TODAY_COUNT" -gt 0 ]] && echo "  └─ [!] $TODAY_COUNT LOW finding(s) today in audit.log"
 fi
 
 echo ""

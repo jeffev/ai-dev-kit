@@ -34,9 +34,9 @@ echo "[post-write] Compiling after edit: $(basename "$FILE_PATH")..."
 OUTPUT=$(./mvnw compile -q 2>&1) && STATUS=0 || STATUS=$?
 
 if [[ $STATUS -eq 0 ]]; then
-  echo "[post-write] ✔ Compilation OK"
+  echo "[post-write] [OK] Compilation OK"
 else
-  echo "[post-write] ✘ Compilation errors:"
+  echo "[post-write] [FAIL] Compilation errors:"
   echo "$OUTPUT" | grep -A2 '\[ERROR\]' | grep -v '^\-\-$' | head -30
   echo ""
   echo "[post-write] Fix the errors above before continuing."

@@ -129,6 +129,7 @@ Runs automatically on every file write by Claude Code via the `PreToolUse` hook.
 |----|----------|-------------|
 | U-001 | CRITICAL | Hardcoded password, token, or API key |
 | U-002 | LOW | `TODO` / `FIXME` in new code |
+| U-003 | MEDIUM | Emoji in source code (`.java`, `.ts`, `.tsx`, `.js`) |
 
 ### Inline suppression
 
