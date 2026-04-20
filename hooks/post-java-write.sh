@@ -40,4 +40,14 @@ else
   echo "$OUTPUT" | grep -A2 '\[ERROR\]' | grep -v '^\-\-$' | head -30
   echo ""
   echo "[post-write] Fix the errors above before continuing."
+
+  # Desktop notification (best-effort, non-blocking)
+  FILE_NAME=$(basename "$FILE_PATH")
+  if command -v notify-send &>/dev/null; then
+    notify-send "AI Dev Kit — Build Failed" "$FILE_NAME caused a compile error" --icon=error 2>/dev/null || true
+  elif command -v osascript &>/dev/null; then
+    osascript -e "display notification \"$FILE_NAME caused a compile error\" with title \"AI Dev Kit — Build Failed\"" 2>/dev/null || true
+  elif command -v powershell.exe &>/dev/null; then
+    powershell.exe -NoProfile -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; \$n = New-Object System.Windows.Forms.NotifyIcon; \$n.Icon = [System.Drawing.SystemIcons]::Error; \$n.Visible = \$true; \$n.ShowBalloonTip(4000, 'AI Dev Kit — Build Failed', '$FILE_NAME caused a compile error', [System.Windows.Forms.ToolTipIcon]::Error); Start-Sleep -Seconds 5; \$n.Dispose()" 2>/dev/null || true
+  fi
 fi

@@ -23,17 +23,22 @@ echo "└───────────────────────�
 if [[ "$JAVA_COUNT" -gt 0 ]]; then
   echo ""
   echo "  $JAVA_COUNT Java file(s) modified this session."
-  echo ""
-  echo "  Run tests:"
 
   if [[ -f "./mvnw" ]]; then
+    echo ""
+    echo "  ┌─ Copy and run:"
+
+    # Suggest targeted test for each modified file (up to 3)
     SUGGESTIONS=$(echo "$MODIFIED" | grep '\.java$' | while read -r f; do
       BASE=$(basename "$f" .java)
-      echo "    ./mvnw test -Dtest=${BASE}Test"
+      echo "  │  ./mvnw test -Dtest=${BASE}Test"
     done | head -3)
 
-    echo "    ./mvnw test                     # all tests"
+    echo "  │  ./mvnw test                     # all tests"
     [[ -n "$SUGGESTIONS" ]] && echo "$SUGGESTIONS"
+    echo "  └─ ./mvnw verify                   # tests + integration tests"
+  else
+    echo "  └─ mvn test"
   fi
 fi
 
@@ -41,14 +46,17 @@ if [[ "$TS_COUNT" -gt 0 ]]; then
   echo ""
   echo "  $TS_COUNT TypeScript file(s) modified this session."
   echo ""
-  echo "  Run tests:"
+  echo "  ┌─ Copy and run:"
 
   if [[ -f "angular.json" ]]; then
-    echo "    ng test --watch=false           # Angular"
+    echo "  │  ng test --watch=false"
+    echo "  └─ ng test --watch=false --code-coverage"
   elif grep -q '"vitest"' package.json 2>/dev/null; then
-    echo "    npx vitest run                  # Vitest"
+    echo "  │  npx vitest run"
+    echo "  └─ npx vitest run --coverage"
   else
-    echo "    npx jest --passWithNoTests      # Jest"
+    echo "  │  npx jest --passWithNoTests"
+    echo "  └─ npx jest --passWithNoTests --coverage"
   fi
 fi
 

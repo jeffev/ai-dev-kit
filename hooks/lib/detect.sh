@@ -35,6 +35,9 @@ detect_stack() {
   STACK_DOCKER_COMPOSE=false
   STACK_MULTIMODULE=false
   STACK_MODULE_LIST=""
+  STACK_KAFKA=false
+  STACK_REDIS=false
+  STACK_KEYCLOAK=false
 
   # Maven / Java
   local pom="$project_root/pom.xml"
@@ -49,6 +52,9 @@ detect_stack() {
     grep -q "junit-jupiter\|junit-platform" "$pom" && STACK_JUNIT5=true
     grep -q "flyway" "$pom" && STACK_FLYWAY=true
     grep -q "postgresql" "$pom" && STACK_POSTGRESQL=true
+    grep -q "spring-kafka\|kafka-clients" "$pom" && STACK_KAFKA=true
+    grep -q "spring-boot-starter-data-redis\|lettuce\|jedis" "$pom" && STACK_REDIS=true
+    grep -q "keycloak\|spring-security-oauth2" "$pom" && STACK_KEYCLOAK=true
     grep -q "<modules>" "$pom" && STACK_MULTIMODULE=true
     if [[ "$STACK_MULTIMODULE" == true ]]; then
       STACK_MODULE_LIST=$(grep -oP '(?<=<module>)[^<]+' "$pom" | tr '\n' ',' | sed 's/,$//')
@@ -69,14 +75,30 @@ detect_stack() {
   [[ -f "$project_root/tsconfig.json" ]] && STACK_TYPESCRIPT=true
   [[ -f "$project_root/docker-compose.yml" || -f "$project_root/docker-compose.yaml" ]] && STACK_DOCKER_COMPOSE=true
 
+  # Kafka / Redis / Keycloak via docker-compose
+  local compose_file=""
+  [[ -f "$project_root/docker-compose.yml" ]]  && compose_file="$project_root/docker-compose.yml"
+  [[ -f "$project_root/docker-compose.yaml" ]] && compose_file="$project_root/docker-compose.yaml"
+  if [[ -n "$compose_file" ]]; then
+    grep -qi "kafka\|zookeeper\|confluentinc" "$compose_file" && STACK_KAFKA=true
+    grep -qi "redis" "$compose_file" && STACK_REDIS=true
+    grep -qi "keycloak" "$compose_file" && STACK_KEYCLOAK=true
+  fi
+
   # PostgreSQL via application.yml
   local app_yml="$project_root/src/main/resources/application.yml"
   local app_props="$project_root/src/main/resources/application.properties"
   if [[ -f "$app_yml" ]]; then
     grep -q "postgresql\|postgres" "$app_yml" && STACK_POSTGRESQL=true
+    grep -q "kafka" "$app_yml" && STACK_KAFKA=true
+    grep -q "redis" "$app_yml" && STACK_REDIS=true
+    grep -q "keycloak" "$app_yml" && STACK_KEYCLOAK=true
   fi
   if [[ -f "$app_props" ]]; then
     grep -q "postgresql\|postgres" "$app_props" && STACK_POSTGRESQL=true
+    grep -q "kafka" "$app_props" && STACK_KAFKA=true
+    grep -q "redis" "$app_props" && STACK_REDIS=true
+    grep -q "keycloak" "$app_props" && STACK_KEYCLOAK=true
   fi
 
   # Write cache
@@ -100,6 +122,9 @@ detect_stack() {
     echo "STACK_DOCKER_COMPOSE=$STACK_DOCKER_COMPOSE"
     echo "STACK_MULTIMODULE=$STACK_MULTIMODULE"
     echo "STACK_MODULE_LIST=$STACK_MODULE_LIST"
+    echo "STACK_KAFKA=$STACK_KAFKA"
+    echo "STACK_REDIS=$STACK_REDIS"
+    echo "STACK_KEYCLOAK=$STACK_KEYCLOAK"
   } > "$project_root/$CACHE_FILE"
 }
 

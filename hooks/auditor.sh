@@ -60,6 +60,24 @@ if echo "$CONTENT" | grep -qP 'ai-kit:ignore\s+ALL'; then
   exit 0
 fi
 
+# Load global suppressions from .aikit-ignore (one rule ID per line, # for comments)
+GLOBAL_SUPPRESSED=()
+AIKIT_IGNORE_FILE="$PROJECT_ROOT/.aikit-ignore"
+if [[ -f "$AIKIT_IGNORE_FILE" ]]; then
+  while IFS= read -r line; do
+    line=$(echo "$line" | sed 's/#.*//' | xargs)
+    [[ -n "$line" ]] && GLOBAL_SUPPRESSED+=("$line")
+  done < "$AIKIT_IGNORE_FILE"
+fi
+
+_is_globally_suppressed() {
+  local rule_id="$1"
+  for suppressed in "${GLOBAL_SUPPRESSED[@]+"${GLOBAL_SUPPRESSED[@]}"}"; do
+    [[ "$suppressed" == "$rule_id" ]] && return 0
+  done
+  return 1
+}
+
 # ── Write content to temp file for analysis ──────────────────────────────────
 TEMP_FILE=$(mktemp /tmp/aikit-audit-XXXXXX)
 trap 'rm -f "$TEMP_FILE"' EXIT
@@ -104,12 +122,11 @@ fi
 # Custom rules from .aikit-rules.yml
 run_custom_rules "$FILE_PATH" "$TEMP_FILE" "$PROJECT_ROOT/.aikit-rules.yml"
 
-# Filter suppressed rules out of FINDINGS
+# Filter suppressed rules out of FINDINGS (inline + global .aikit-ignore)
 FILTERED_FINDINGS=()
 for finding in "${FINDINGS[@]}"; do
-  local rule
   rule=$(echo "$finding" | cut -d'|' -f2)
-  if ! _is_suppressed "$rule"; then
+  if ! _is_suppressed "$rule" && ! _is_globally_suppressed "$rule"; then
     FILTERED_FINDINGS+=("$finding")
   fi
 done

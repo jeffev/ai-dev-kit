@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Dev Kit — AI Bootstrap for Java &amp; Frontend Developers</title>
-  <meta name="description" content="Configure your project for AI-assisted development with maximum efficiency. Real-time security auditor, automatic hooks, smart commit and slash commands for Spring Boot, Angular and React." />
+  <meta name="description" content="Configure your project for AI-assisted development. Real-time security auditor, automatic hooks, desktop notifications, smart commit, slash commands and audit reports for Spring Boot, Angular and React." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -364,12 +364,27 @@
       <div class="feature-card">
         <div class="feature-icon">⌨️</div>
         <h3>Slash Commands</h3>
-        <p>Ready-to-use commands tailored to your stack: <code>/project:endpoint</code>, <code>/project:test</code>, <code>/project:secure</code>, <code>/project:migration</code>.</p>
+        <p>Ready-to-use commands tailored to your stack: <code>/project:endpoint</code>, <code>/project:refactor</code>, <code>/project:debug</code>, <code>/project:pr</code> and more.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📋</div>
         <h3>Custom rules</h3>
         <p>Define your team's rules in <code>.aikit-rules.yml</code> with regex patterns, severity and message. The auditor applies them automatically.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>Desktop notifications</h3>
+        <p>Build failures trigger a native notification on Linux (<code>notify-send</code>), macOS, and Windows — so you know immediately without watching the terminal.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Audit report</h3>
+        <p>Run <code>ai-kit audit-report</code> to generate a markdown summary of all auditor findings — grouped by severity with rule, file, and line.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🩺</div>
+        <h3>Doctor &amp; Update</h3>
+        <p><code>ai-kit doctor</code> diagnoses your installation. <code>ai-kit update</code> refreshes hooks and commands in-place — no need to re-run init.</p>
       </div>
     </div>
   </div>
@@ -449,7 +464,7 @@
   <div class="section-inner">
     <div class="section-label">Auditor</div>
     <h2 class="section-title">Quality &amp; security rules</h2>
-    <p class="section-desc">14 built-in rules for Java, Angular, React and any file. Extensible via <code>.aikit-rules.yml</code>.</p>
+    <p class="section-desc">18 built-in rules for Java, Angular, React and any file. Extensible via <code>.aikit-rules.yml</code> and suppressible via <code>.aikit-ignore</code>.</p>
 
     <div class="rules-tabs">
       <button class="tab-btn active" onclick="showTab('java')">Java / Spring Boot</button>
@@ -468,6 +483,8 @@
           <tr><td><code>J-004</code></td><td><span class="badge badge-high">HIGH</span></td><td><code>@Transactional</code> on a private method (no effect in Spring AOP)</td></tr>
           <tr><td><code>J-005</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td>JPA <code>@Entity</code> missing proper <code>equals/hashCode</code></td></tr>
           <tr><td><code>J-006</code></td><td><span class="badge badge-critical">CRITICAL</span></td><td>Hardcoded JWT secret in source code</td></tr>
+          <tr><td><code>J-007</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td>Generic <code>catch(Exception)</code> that swallows all errors silently</td></tr>
+          <tr><td><code>J-008</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td><code>@Scheduled</code> without <code>@Async</code> — blocks the scheduler thread pool</td></tr>
         </tbody>
       </table>
     </div>
@@ -480,6 +497,8 @@
           <tr><td><code>F-002</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td>Explicit TypeScript <code>any</code></td></tr>
           <tr><td><code>F-003</code></td><td><span class="badge badge-high">HIGH</span></td><td><code>.subscribe()</code> without <code>takeUntilDestroyed</code> or <code>unsubscribe</code> — Angular memory leak</td></tr>
           <tr><td><code>F-004</code></td><td><span class="badge badge-critical">CRITICAL</span></td><td>Secret in <code>environment.ts</code>, <code>.env</code> or frontend config file</td></tr>
+          <tr><td><code>F-005</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td><code>useEffect</code> without dependency array — runs on every render</td></tr>
+          <tr><td><code>F-006</code></td><td><span class="badge badge-high">HIGH</span></td><td>Direct DOM manipulation in Angular component (<code>document.getElementById</code>)</td></tr>
         </tbody>
       </table>
     </div>
@@ -514,6 +533,13 @@
       <p style="color: var(--muted); font-size: .88rem; margin-top: 1rem;">
         Fields: <code>id</code>, <code>severity</code> (CRITICAL/HIGH/MEDIUM/LOW), <code>files</code> (glob), <code>pattern</code> (regex grep -P), <code>message</code>
       </p>
+      <p style="color: var(--muted); margin: 1.5rem 0 .75rem;">To suppress built-in rules project-wide, add them to <code>.aikit-ignore</code>:</p>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">text — .aikit-ignore</span></div>
+        <div class="code-body"><pre><span class="c"># one rule ID per line — # starts a comment</span>
+<span class="v">F-001</span>  <span class="c"># uses custom logger wrapper, no console.log needed</span>
+<span class="v">U-002</span>  <span class="c"># TODOs tracked in Linear</span></pre></div>
+      </div>
     </div>
   </div>
 </section>
@@ -590,9 +616,14 @@ bash smart-commit.sh --push</pre></div>
         <div class="code-body"><pre><span class="c"># ~/.bashrc or ~/.zshrc</span>
 <span class="k">alias</span> <span class="v">ai-kit</span>=<span class="s">"bash /path/to/ai-dev-kit/ai-kit.sh"</span>
 
-<span class="c"># Usage:</span>
+<span class="c"># Bootstrap &amp; maintenance</span>
 ai-kit init
+ai-kit update           <span class="c"># update hooks in-place</span>
+ai-kit doctor           <span class="c"># diagnose installation</span>
+
+<span class="c"># Daily workflow</span>
 ai-kit commit --push
+ai-kit audit-report     <span class="c"># generate findings report</span>
 ai-kit audit-test src/main/java/MyClass.java</pre></div>
       </div>
     </div>

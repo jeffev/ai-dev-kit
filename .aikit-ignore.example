@@ -1,0 +1,14 @@
+# .aikit-ignore — Global rule suppressions for AI Dev Kit
+# Copy this file to .aikit-ignore at your project root.
+# One rule ID per line. Lines starting with # are comments.
+# These rules will be suppressed on every file write project-wide.
+# For per-file suppression, use: // ai-kit:ignore <RULE-ID> in the source file.
+
+# Example: allow console.log if your project uses a custom logger wrapper
+# F-001
+
+# Example: TODOs are tracked in your issue tracker, not blocking
+# U-002
+
+# Example: project uses a shared scheduler bean with @Async configured globally
+# J-008

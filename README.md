@@ -8,10 +8,12 @@ A single command (`ai-kit init`) that configures your project for efficient AI-a
 
 - **Real-time auditor** — intercepts every file write and blocks critical issues before they hit disk
 - **Generated CLAUDE.md** — real project context injected into every AI session
-- **Ready-to-use hooks** — compile check, type check, test reminder, Docker status
-- **Slash commands** — `/project:endpoint`, `/project:test`, `/project:secure` and more
+- **Ready-to-use hooks** — compile check, type check, test reminder, Docker status, test coverage display
+- **Slash commands** — `/project:endpoint`, `/project:test`, `/project:secure`, `/project:refactor`, `/project:debug`, `/project:pr` and more
 - **Smart Commit** — diff review + Conventional Commit message generation via AI
 - **Custom rules** — define your team's rules in `.aikit-rules.yml`
+- **Global suppression** — `.aikit-ignore` file to silence rules project-wide
+- **Desktop notifications** — build failure alerts on Linux, macOS, and Windows
 
 ---
 
@@ -56,6 +58,9 @@ bash /path/to/ai-dev-kit/ai-kit.sh init
 │   ├── review.md           # /project:review
 │   ├── test.md             # /project:test
 │   ├── secure.md           # /project:secure
+│   ├── refactor.md         # /project:refactor
+│   ├── debug.md            # /project:debug
+│   ├── pr.md               # /project:pr
 │   ├── endpoint.md         # /project:endpoint  (Spring Boot)
 │   ├── dto.md              # /project:dto        (Spring Boot)
 │   ├── migration.md        # /project:migration  (Flyway)
@@ -64,8 +69,8 @@ bash /path/to/ai-dev-kit/ai-kit.sh init
     ├── auditor.sh           # PreToolUse — blocks critical issues
     ├── post-java-write.sh   # PostToolUse — mvnw compile after .java writes
     ├── post-ts-write.sh     # PostToolUse — tsc --noEmit after .ts writes
-    ├── session-start.sh     # SessionStart — git + docker status
-    ├── stop-test-reminder.sh # Stop — reminds to run tests
+    ├── session-start.sh     # SessionStart — git, docker, coverage status
+    ├── stop-test-reminder.sh # Stop — shows ready-to-run test commands
     └── lib/
         ├── detect.sh
         ├── java_rules.sh
@@ -76,6 +81,7 @@ bash /path/to/ai-dev-kit/ai-kit.sh init
 
 smart-commit.sh              # AI-powered smart commit at project root
 .aikit-rules.yml             # team custom rules
+.aikit-ignore                # global rule suppressions
 ```
 
 ---
@@ -103,6 +109,8 @@ Runs automatically on every file write by Claude Code via the `PreToolUse` hook.
 | J-004 | HIGH | `@Transactional` on a private method (no effect in Spring AOP) |
 | J-005 | MEDIUM | JPA `@Entity` missing proper `equals/hashCode` |
 | J-006 | CRITICAL | Hardcoded JWT secret |
+| J-007 | MEDIUM | Generic `catch(Exception)` that swallows errors |
+| J-008 | MEDIUM | `@Scheduled` without `@Async` (blocks scheduler thread pool) |
 
 ### Angular / React rules
 
@@ -112,6 +120,8 @@ Runs automatically on every file write by Claude Code via the `PreToolUse` hook.
 | F-002 | MEDIUM | TypeScript `any` |
 | F-003 | HIGH | `.subscribe()` without unsubscribe strategy (Angular memory leak) |
 | F-004 | CRITICAL | Secret in `environment.ts` or `.env` file |
+| F-005 | MEDIUM | `useEffect` without dependency array (runs on every render) |
+| F-006 | HIGH | Direct DOM manipulation in Angular component (`document.getElementById`) |
 
 ### Universal rules
 
@@ -128,6 +138,21 @@ For intentional exceptions, add a comment to the file:
 // ai-kit:ignore J-002 — public endpoint by design
 @GetMapping("/health")
 public ResponseEntity<String> health() { ... }
+```
+
+### Global suppression (`.aikit-ignore`)
+
+To suppress a rule across the entire project, add it to `.aikit-ignore` at the project root:
+
+```
+# .aikit-ignore — one rule ID per line
+# Lines starting with # are comments
+
+# Allow console.log in this project (uses a custom logger wrapper)
+F-001
+
+# TODOs tracked in Linear, not blocking
+U-002
 ```
 
 ---
@@ -180,30 +205,35 @@ Rules are applied automatically by the auditor on every file write.
 | Hook | Script | When it fires |
 |------|--------|---------------|
 | `PreToolUse` | `auditor.sh` | Before writing any file |
-| `PostToolUse` | `post-java-write.sh` | After writing `.java` → runs `mvnw compile` |
+| `PostToolUse` | `post-java-write.sh` | After writing `.java` → runs `mvnw compile`, desktop notification on failure |
 | `PostToolUse` | `post-ts-write.sh` | After writing `.ts/.tsx` → runs `tsc --noEmit` |
-| `SessionStart` | `session-start.sh` | On Claude Code open — shows git + docker status |
-| `Stop` | `stop-test-reminder.sh` | On session close — reminds to run tests |
+| `SessionStart` | `session-start.sh` | On Claude Code open — shows git, docker, and test coverage status |
+| `Stop` | `stop-test-reminder.sh` | On session close — shows ready-to-run test commands |
 
 ---
 
 ## Available commands
 
 ```bash
-bash ai-kit.sh init              # bootstrap the project
-bash ai-kit.sh commit            # smart commit
-bash ai-kit.sh commit --push     # smart commit + push
-bash ai-kit.sh audit-test <file> # test the auditor against a file
+bash ai-kit.sh init                    # bootstrap the project
+bash ai-kit.sh update                  # update hooks and commands in-place
+bash ai-kit.sh doctor                  # diagnose installation issues
+bash ai-kit.sh commit                  # smart commit
+bash ai-kit.sh commit --push           # smart commit + push
+bash ai-kit.sh audit-test <file>       # test the auditor against a file
+bash ai-kit.sh audit-report            # generate markdown report from audit.log
+bash ai-kit.sh audit-report report.md  # write report to a specific file
 ```
 
 ---
 
-## Supported stack
+## Stack detection
 
-- **Backend:** Java 17+, Spring Boot 3.x/4.x, Spring Security, Lombok, MapStruct, JPA, Flyway, PostgreSQL
-- **Frontend:** Angular 17+ (standalone), React 18/19, TypeScript, Vite
-- **Infra:** Docker Compose, Maven Wrapper
-- **OS:** Linux, macOS, Windows (Git Bash)
+Detects 20+ technologies from `pom.xml`, `package.json`, `angular.json`, `docker-compose.yml`, and `application.yml`:
+
+- **Backend:** Java 17+, Spring Boot 3.x/4.x, Spring Security, Lombok, MapStruct, JPA, Flyway, PostgreSQL, Kafka, Redis, Keycloak
+- **Frontend:** Angular 17+ (standalone), React 18/19, TypeScript, Vite, ESLint
+- **Infra:** Docker Compose, Maven Wrapper, multi-module Maven
 
 ---
 

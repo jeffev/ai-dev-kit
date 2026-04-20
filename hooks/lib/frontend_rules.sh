@@ -16,6 +16,8 @@ run_frontend_rules() {
     _frontend_typescript_any "$file_path" "$content_file"
     _frontend_subscribe_leak "$file_path" "$content_file"
     _frontend_env_secrets "$file_path" "$content_file"
+    _frontend_useeffect_missing_deps "$file_path" "$content_file"
+    _frontend_direct_dom "$file_path" "$content_file"
   fi
 }
 
@@ -76,5 +78,50 @@ _frontend_env_secrets() {
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
     FINDINGS+=("CRITICAL|F-004|$file_path|$line_num|Secret in frontend environment file. Frontend bundles are public — use server-side proxying or runtime config injection.|")
+  fi
+}
+
+_frontend_useeffect_missing_deps() {
+  local file_path="$1"
+  local content_file="$2"
+
+  # Only React files
+  echo "$file_path" | grep -qiE '\.(tsx|jsx)$' || return
+
+  local match
+  match=$(grep -inP 'useEffect\s*\(\s*\(' "$content_file" 2>/dev/null | while IFS= read -r line; do
+    local ln
+    ln=$(echo "$line" | grep -oP '^\d+')
+    # Look ahead a few lines for missing dependency array (closing with just })
+    local window
+    window=$(sed -n "${ln},$((ln+6))p" "$content_file" 2>/dev/null)
+    # Flag if no dependency array bracket found near the useEffect call
+    if ! echo "$window" | grep -qP '\]\s*\)'; then
+      echo "$line"
+      break
+    fi
+  done | head -1)
+
+  if [[ -n "$match" ]]; then
+    local line_num
+    line_num=$(echo "$match" | grep -oP '^\d+')
+    FINDINGS+=("MEDIUM|F-005|$file_path|$line_num|useEffect without a dependency array runs on every render. Add [] for mount-only or list the actual dependencies.|")
+  fi
+}
+
+_frontend_direct_dom() {
+  local file_path="$1"
+  local content_file="$2"
+
+  # Only Angular .ts component files
+  echo "$file_path" | grep -qiE '\.ts$' || return
+  grep -qiP '@Component|@Directive' "$content_file" 2>/dev/null || return
+
+  local match
+  match=$(grep -inP 'document\.(getElementById|querySelector|querySelectorAll|getElementsBy)\s*\(' "$content_file" 2>/dev/null | head -1)
+  if [[ -n "$match" ]]; then
+    local line_num
+    line_num=$(echo "$match" | grep -oP '^\d+')
+    FINDINGS+=("HIGH|F-006|$file_path|$line_num|Direct DOM manipulation in Angular component. Use @ViewChild with ElementRef or the Renderer2 service instead.|")
   fi
 }

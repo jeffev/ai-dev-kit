@@ -18,6 +18,8 @@ run_java_rules() {
     _java_transactional_private "$file_path" "$content_file"
     _java_entity_missing_equals "$file_path" "$content_file"
     _java_hardcoded_jwt_secret "$file_path" "$content_file"
+    _java_generic_catch "$file_path" "$content_file"
+    _java_scheduled_without_async "$file_path" "$content_file"
   fi
 }
 
@@ -121,5 +123,34 @@ _java_hardcoded_jwt_secret() {
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
     FINDINGS+=("CRITICAL|J-006|$file_path|$line_num|Hardcoded JWT secret detected. Move to application.yml and inject with @Value(\"\${jwt.secret}\").|")
+  fi
+}
+
+_java_generic_catch() {
+  local file_path="$1"
+  local content_file="$2"
+
+  local match
+  match=$(grep -inP '}\s*catch\s*\(\s*(Exception|Throwable)\s+\w+\s*\)\s*\{' "$content_file" 2>/dev/null | head -1)
+  if [[ -n "$match" ]]; then
+    local line_num
+    line_num=$(echo "$match" | grep -oP '^\d+')
+    FINDINGS+=("MEDIUM|J-007|$file_path|$line_num|Generic catch(Exception) swallows all errors silently. Catch specific exceptions or re-throw as a domain exception.|")
+  fi
+}
+
+_java_scheduled_without_async() {
+  local file_path="$1"
+  local content_file="$2"
+
+  grep -q "@Scheduled" "$content_file" 2>/dev/null || return
+  grep -q "@Async\|@EnableAsync" "$content_file" 2>/dev/null && return
+
+  local match
+  match=$(grep -nP '@Scheduled' "$content_file" 2>/dev/null | head -1)
+  if [[ -n "$match" ]]; then
+    local line_num
+    line_num=$(echo "$match" | grep -oP '^\d+')
+    FINDINGS+=("MEDIUM|J-008|$file_path|$line_num|@Scheduled method without @Async. Long-running tasks block the scheduler thread pool. Add @Async and @EnableAsync on the config class.|")
   fi
 }

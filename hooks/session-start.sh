@@ -63,6 +63,25 @@ if [[ -f "package.json" ]]; then
   echo "  ├─ Node $NODE_VER"
 fi
 
+# ── Test coverage ─────────────────────────────────────────────────────────────
+# JaCoCo (Java)
+JACOCO_CSV="target/site/jacoco/jacoco.csv"
+if [[ -f "$JACOCO_CSV" ]]; then
+  COVERED=$(awk -F',' 'NR>1 {c+=$8; m+=$9} END {print c+0, m+0}' "$JACOCO_CSV" 2>/dev/null | awk '{if ($1+$2>0) printf "%.0f", ($1/($1+$2))*100; else print "?"}')
+  echo ""
+  echo "  Last Test Run"
+  echo "  └─ JaCoCo line coverage: ${COVERED}%"
+fi
+
+# Istanbul / NYC (JavaScript/TypeScript)
+ISTANBUL_JSON="coverage/coverage-summary.json"
+if [[ -f "$ISTANBUL_JSON" ]]; then
+  LINES_PCT=$(python3 -c "import json,sys; d=json.load(open('$ISTANBUL_JSON')); t=d.get('total',{}); l=t.get('lines',{}); print(l.get('pct','?'))" 2>/dev/null || echo "?")
+  echo ""
+  echo "  Last Test Run"
+  echo "  └─ Istanbul line coverage: ${LINES_PCT}%"
+fi
+
 # ── Audit log summary ─────────────────────────────────────────────────────────
 LOG=".claude/hooks/logs/audit.log"
 if [[ -f "$LOG" ]]; then
