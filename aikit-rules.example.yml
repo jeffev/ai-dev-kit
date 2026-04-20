@@ -1,0 +1,42 @@
+# .aikit-rules.yml — Regras customizadas do AI Dev Kit
+# Coloque este arquivo na raiz do projeto como: .aikit-rules.yml
+#
+# Severidades: CRITICAL | HIGH | MEDIUM | LOW
+# files: glob separado por vírgula (ex: "*.java", "*.ts,*.tsx", "*")
+# pattern: regex compatível com grep -P
+
+rules:
+  # Exemplo: bloquear uso de System.exit() em qualquer lugar
+  - id: C-001
+    severity: HIGH
+    files: "*.java"
+    pattern: 'System\.exit\('
+    message: "System.exit() não deve ser usado em produção. Lance uma exceção adequada."
+
+  # Exemplo: proibir imports de classes deprecated do time
+  - id: C-002
+    severity: MEDIUM
+    files: "*.java"
+    pattern: 'import com\.example\.legacy\.'
+    message: "Pacote legacy deprecado. Use os equivalentes em com.example.core."
+
+  # Exemplo: proibir fetch() direto em componentes React (deve usar hooks customizados)
+  - id: C-003
+    severity: MEDIUM
+    files: "*.tsx,*.ts"
+    pattern: '^\s*fetch\s*\('
+    message: "Use o hook customizado useApi() em vez de fetch() direto em componentes."
+
+  # Exemplo: garantir que arquivos de migração sigam o padrão de nomenclatura
+  - id: C-004
+    severity: LOW
+    files: "*.sql"
+    pattern: 'DROP TABLE(?! IF EXISTS)'
+    message: "Prefira DROP TABLE IF EXISTS para evitar erros em re-execução."
+
+  # Exemplo: bloquear console.error nos testes (usa logger mockado)
+  - id: C-005
+    severity: LOW
+    files: "*.spec.ts"
+    pattern: 'console\.error\('
+    message: "Nos testes, spy no console.error em vez de chamá-lo diretamente."

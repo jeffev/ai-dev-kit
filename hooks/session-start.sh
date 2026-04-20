@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# SessionStart hook — show project status when Claude Code session begins
+
+set -euo pipefail
+
+SESSION_FILE=".claude/hooks/.session-state"
+
+# Clear session state from previous session
+rm -f "$SESSION_FILE"
+mkdir -p "$(dirname "$SESSION_FILE")"
+
+echo ""
+echo "╔══════════════════════════════════╗"
+echo "║       AI Dev Kit — Session       ║"
+echo "╚══════════════════════════════════╝"
+
+# ── Git status ────────────────────────────────────────────────────────────────
+if command -v git &>/dev/null && git rev-parse --git-dir &>/dev/null 2>&1; then
+  BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+  DIRTY=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+  AHEAD=$(git rev-list --count @{u}..HEAD 2>/dev/null || echo "0")
+
+  echo ""
+  echo "  Git"
+  echo "  ├─ Branch:    $BRANCH"
+  echo "  ├─ Modificados: $DIRTY arquivo(s)"
+  [[ "$AHEAD" -gt 0 ]] && echo "  └─ Push pendente: $AHEAD commit(s)" || echo "  └─ Sincronizado com remote"
+fi
+
+# ── Docker Compose status ─────────────────────────────────────────────────────
+if command -v docker &>/dev/null && [[ -f "docker-compose.yml" || -f "docker-compose.yaml" ]]; then
+  echo ""
+  echo "  Docker Compose"
+
+  STATUS=$(docker compose ps --format "table {{.Name}}\t{{.Status}}" 2>/dev/null | tail -n +2 || echo "")
+
+  if [[ -z "$STATUS" ]]; then
+    echo "  └─ Nenhum serviço rodando"
+  else
+    while IFS= read -r line; do
+      NAME=$(echo "$line" | awk '{print $1}')
+      STATE=$(echo "$line" | awk '{$1=""; print $0}' | xargs)
+      if echo "$STATE" | grep -qi "running\|up"; then
+        echo "  ├─ ✔ $NAME ($STATE)"
+      else
+        echo "  ├─ ✘ $NAME ($STATE)"
+      fi
+    done <<< "$STATUS"
+  fi
+fi
+
+# ── Maven / Node check ────────────────────────────────────────────────────────
+echo ""
+echo "  Ambiente"
+
+if [[ -f "pom.xml" ]]; then
+  JAVA_VER=$(java -version 2>&1 | grep -oP '(?<=version ")[^"]+' | head -1 || echo "?")
+  echo "  ├─ Java $JAVA_VER"
+fi
+
+if [[ -f "package.json" ]]; then
+  NODE_VER=$(node --version 2>/dev/null || echo "não encontrado")
+  echo "  ├─ Node $NODE_VER"
+fi
+
+# ── Audit log summary ─────────────────────────────────────────────────────────
+LOG=".claude/hooks/logs/audit.log"
+if [[ -f "$LOG" ]]; then
+  TODAY=$(date '+%Y-%m-%d')
+  TODAY_COUNT=$(grep -c "$TODAY" "$LOG" 2>/dev/null || echo 0)
+  [[ "$TODAY_COUNT" -gt 0 ]] && echo "  └─ ⚠  $TODAY_COUNT finding(s) LOW hoje no audit.log"
+fi
+
+echo ""
