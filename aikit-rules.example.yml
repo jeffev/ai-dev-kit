@@ -15,6 +15,7 @@ rules:
     files: "*.java"
     pattern: 'System\.exit\('
     message: "System.exit() must not be used. Throw a proper exception instead."
+    fix: "throw new IllegalStateException(\"reason\") or use Spring's ApplicationContext.close()"
 
   # Ban imports from deprecated internal packages
   - id: C-002
@@ -36,6 +37,7 @@ rules:
     files: "*.java"
     pattern: 'new\s+ObjectMapper\s*\('
     message: "Do not instantiate ObjectMapper directly. Inject the shared Spring bean via @Autowired ObjectMapper."
+    fix: "@Autowired private ObjectMapper objectMapper;"
 
   # Warn on Thread.sleep() in production code
   - id: C-005
@@ -75,6 +77,7 @@ rules:
     files: "*.tsx,*.ts"
     pattern: '^\s*fetch\s*\('
     message: "Use the custom useApi() hook instead of calling fetch() directly."
+    fix: "const { data } = useApi('/endpoint')"
 
   # Warn on @ts-ignore (hides real type errors)
   - id: C-010
@@ -112,3 +115,4 @@ rules:
     files: ".env,.env.local,.env.production"
     pattern: '=.+'
     message: "Do not commit .env files with real values. Add them to .gitignore and use .env.example instead."
+    fix: "Add .env to .gitignore and commit a .env.example with placeholder values"

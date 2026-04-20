@@ -20,10 +20,12 @@ info() { echo -e "  ${C_CYAN}…${C_RESET}  $*"; }
 # ── Args ──────────────────────────────────────────────────────────────────────
 DO_PUSH=false
 DRY_RUN=false
+NO_REVIEW=false
 for arg in "$@"; do
   case "$arg" in
-    --push)    DO_PUSH=true ;;
-    --dry-run) DRY_RUN=true ;;
+    --push)      DO_PUSH=true ;;
+    --dry-run)   DRY_RUN=true ;;
+    --no-review) NO_REVIEW=true ;;
   esac
 done
 
@@ -45,7 +47,31 @@ info "$FILE_COUNT staged file(s):"
 echo "$STAGED_FILES" | sed 's/^/       /'
 echo ""
 
+# ── Block on open CRITICAL/HIGH findings from today ──────────────────────────
+AUDIT_LOG=".claude/hooks/logs/audit.log"
+if [[ -f "$AUDIT_LOG" && "$NO_REVIEW" == false ]]; then
+  TODAY=$(date '+%Y-%m-%d')
+  BLOCKING=$(grep "$TODAY" "$AUDIT_LOG" 2>/dev/null | grep -E "\|(CRITICAL|HIGH)\|" | wc -l | tr -d ' ')
+  if [[ "$BLOCKING" -gt 0 ]]; then
+    echo ""
+    warn "$BLOCKING CRITICAL/HIGH finding(s) in today's audit.log — resolve before committing."
+    grep "$TODAY" "$AUDIT_LOG" | grep -E "\|(CRITICAL|HIGH)\|" | while IFS='|' read -r date sev rule file line msg _; do
+      echo "    [$sev] $rule  $file:$line"
+    done
+    echo ""
+    echo -n "  Commit anyway? [y/N] "
+    read -r override
+    if [[ "$override" != "y" && "$override" != "Y" ]]; then
+      fail "Commit cancelled. Fix the findings above first."
+      exit 1
+    fi
+  fi
+fi
+
 # ── Review via claude -p ──────────────────────────────────────────────────────
+if [[ "$NO_REVIEW" == true ]]; then
+  warn "Skipping AI review (--no-review)"
+else
 info "Reviewing changes..."
 
 REVIEW=$(echo "$DIFF" | claude -p "$(cat <<'PROMPT'
@@ -87,6 +113,7 @@ else
   fi
   warn "Committing with warnings..."
 fi
+fi  # end NO_REVIEW block
 
 # ── Generate commit message ───────────────────────────────────────────────────
 info "Generating commit message..."

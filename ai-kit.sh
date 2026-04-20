@@ -424,17 +424,27 @@ main() {
       _cmd_audit_report "${2:-}"
       ;;
 
+    stats)
+      _cmd_stats
+      ;;
+
+    install-git-hook)
+      _cmd_install_git_hook
+      ;;
+
     help|*)
       echo "Usage: bash ai-kit.sh <command>"
       echo ""
       echo "Commands:"
-      echo "  init               Bootstrap AI tooling for the current project"
-      echo "  update             Update hooks and commands from the ai-dev-kit repo"
-      echo "  doctor             Diagnose hook installation and configuration"
-      echo "  audit-test <file>  Run the auditor manually against a file"
-      echo "  audit-report       Generate a markdown report from audit.log"
-      echo "  commit             Review staged diff, generate commit message and commit"
-      echo "                     Flags: --push (push after commit), --dry-run"
+      echo "  init                   Bootstrap AI tooling for the current project"
+      echo "  update                 Update hooks and commands from the ai-dev-kit repo"
+      echo "  doctor                 Diagnose hook installation and configuration"
+      echo "  stats                  Show audit statistics from audit.log"
+      echo "  audit-test <file>      Run the auditor manually against a file"
+      echo "  audit-report [file]    Generate a markdown report from audit.log"
+      echo "  install-git-hook       Install auditor as a git pre-commit hook"
+      echo "  commit                 Review staged diff, generate commit message and commit"
+      echo "                         Flags: --push, --dry-run, --no-review"
       ;;
   esac
 }
@@ -554,15 +564,95 @@ _cmd_doctor() {
     warn "audit.log not found (will be created on first write)"
   fi
 
+  # Validate .aikit-rules.yml
+  echo ""
+  echo "  .aikit-rules.yml"
+  if [[ -f ".aikit-rules.yml" ]]; then
+    if command -v python3 &>/dev/null; then
+      local validate_result
+      validate_result=$(python3 - ".aikit-rules.yml" <<'PYEOF' 2>&1
+import sys, re
+rules_file = sys.argv[1]
+errors = []
+try:
+    with open(rules_file) as f:
+        content = f.read()
+    current = {}
+    in_rules = False
+    rule_num = 0
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith('#') or not stripped:
+            continue
+        if stripped == 'rules:':
+            in_rules = True
+            continue
+        if not in_rules:
+            continue
+        if stripped.startswith('- id:'):
+            if current:
+                if 'pattern' in current:
+                    try:
+                        re.compile(current['pattern'])
+                    except re.error as e:
+                        errors.append(f"Rule {current.get('id','?')}: invalid regex — {e}")
+            current = {'id': stripped.split(':', 1)[1].strip()}
+            rule_num += 1
+        elif stripped.startswith('severity:'):
+            sev = stripped.split(':', 1)[1].strip().strip('"\'')
+            if sev not in ('CRITICAL','HIGH','MEDIUM','LOW'):
+                errors.append(f"Rule {current.get('id','?')}: invalid severity '{sev}'")
+            current['severity'] = sev
+        elif stripped.startswith('pattern:'):
+            current['pattern'] = stripped.split(':', 1)[1].strip().strip('"\'')
+    if current and 'pattern' in current:
+        try:
+            re.compile(current['pattern'])
+        except re.error as e:
+            errors.append(f"Rule {current.get('id','?')}: invalid regex — {e}")
+    if errors:
+        print('ERRORS:' + '|'.join(errors))
+    else:
+        print(f'OK:{rule_num}')
+except Exception as e:
+    print(f'ERRORS:Parse error — {e}')
+PYEOF
+)
+      if echo "$validate_result" | grep -q "^OK:"; then
+        local rc
+        rc=$(echo "$validate_result" | grep -oP '(?<=OK:)\d+')
+        ok "$rc rule(s) — YAML valid, all regex patterns compile"
+      else
+        echo "$validate_result" | grep -oP '(?<=ERRORS:).*' | tr '|' '\n' | while read -r e; do
+          fail "$e"
+          errors=$((errors+1))
+        done
+      fi
+    else
+      warn "python3 not found — skipping .aikit-rules.yml validation"
+    fi
+  else
+    warn ".aikit-rules.yml not found (optional — skipping)"
+  fi
+
   # Auditor self-test
   echo ""
   echo "  Auditor self-test"
   local test_input='{"tool_name":"Write","tool_input":{"file_path":"test.txt","content":"hello world"}}'
   if echo "$test_input" | bash .claude/hooks/auditor.sh &>/dev/null; then
-    ok "Auditor runs cleanly"
+    ok "Safe input: allowed (exit 0)"
   else
     fail "Auditor returned non-zero on safe input"
     errors=$((errors+1))
+  fi
+
+  # Test that a known-bad input is blocked
+  local bad_input='{"tool_name":"Write","tool_input":{"file_path":"test.java","content":"String q = \"SELECT * FROM users WHERE id = \" + id;"}}'
+  if echo "$bad_input" | bash .claude/hooks/auditor.sh &>/dev/null; then
+    warn "SQL Injection input was NOT blocked (J-001 may be disabled)"
+    warnings=$((warnings+1))
+  else
+    ok "Known-bad input: blocked (exit 1)"
   fi
 
   # Summary
@@ -645,6 +735,121 @@ _cmd_audit_report() {
   } > "$output_file"
 
   ok "Report written to $output_file ($total total findings)"
+}
+
+# ── Command: stats ────────────────────────────────────────────────────────────
+_cmd_stats() {
+  local log=".claude/hooks/logs/audit.log"
+
+  if [[ ! -f "$log" || ! -s "$log" ]]; then
+    info "No audit.log found or file is empty."
+    exit 0
+  fi
+
+  header "stats" "Audit statistics"
+
+  local total critical high medium low
+  total=$(wc -l < "$log" | tr -d ' ')
+  critical=$(grep -c "|CRITICAL|" "$log" 2>/dev/null || echo 0)
+  high=$(grep -c "|HIGH|" "$log" 2>/dev/null || echo 0)
+  medium=$(grep -c "|MEDIUM|" "$log" 2>/dev/null || echo 0)
+  low=$(grep -c "|LOW|" "$log" 2>/dev/null || echo 0)
+
+  echo ""
+  echo "  Findings by severity"
+  echo "  ├─ CRITICAL : $critical"
+  echo "  ├─ HIGH     : $high"
+  echo "  ├─ MEDIUM   : $medium"
+  echo "  ├─ LOW      : $low"
+  echo "  └─ TOTAL    : $total"
+
+  echo ""
+  echo "  Top rules triggered"
+  grep -oP '(?<=\|)[A-Z]-\d+(?=\|)' "$log" 2>/dev/null | sort | uniq -c | sort -rn | head -8 | \
+    while read -r count rule; do
+      printf "  ├─ %-8s %s finding(s)\n" "$rule" "$count"
+    done
+
+  echo ""
+  echo "  Most affected files"
+  grep -oP '(?<=\|)[^|]+(?=\|\d+\|)' "$log" 2>/dev/null | sort | uniq -c | sort -rn | head -5 | \
+    while read -r count file; do
+      printf "  ├─ %s  (%s finding(s))\n" "$(basename "$file")" "$count"
+    done
+
+  echo ""
+  echo "  Activity by day (last 7 days)"
+  for i in 6 5 4 3 2 1 0; do
+    local day
+    day=$(date -d "$i days ago" '+%Y-%m-%d' 2>/dev/null || date -v-${i}d '+%Y-%m-%d' 2>/dev/null || echo "")
+    [[ -z "$day" ]] && continue
+    local count
+    count=$(grep -c "$day" "$log" 2>/dev/null || echo 0)
+    local bar
+    bar=$(printf '%0.s#' $(seq 1 $((count > 40 ? 40 : count))))
+    printf "  %s  %3d  %s\n" "$day" "$count" "$bar"
+  done
+
+  echo ""
+}
+
+# ── Command: install-git-hook ─────────────────────────────────────────────────
+_cmd_install_git_hook() {
+  header "install-git-hook" "Installing auditor as git pre-commit hook"
+
+  if ! git rev-parse --git-dir &>/dev/null 2>&1; then
+    fail "Not a git repository."
+    exit 1
+  fi
+
+  if [[ ! -f ".claude/hooks/auditor.sh" ]]; then
+    fail ".claude/hooks/auditor.sh not found. Run 'ai-kit init' first."
+    exit 1
+  fi
+
+  local hook_file=".git/hooks/pre-commit"
+
+  if [[ -f "$hook_file" ]]; then
+    if grep -q "ai-dev-kit\|aikit\|auditor" "$hook_file" 2>/dev/null; then
+      ok "AI Dev Kit pre-commit hook already installed."
+      exit 0
+    fi
+    warn "Existing pre-commit hook found — appending AI Dev Kit block."
+    echo "" >> "$hook_file"
+  else
+    printf '#!/usr/bin/env bash\n' > "$hook_file"
+    chmod +x "$hook_file"
+  fi
+
+  cat >> "$hook_file" <<'HOOK'
+
+# ── AI Dev Kit — pre-commit auditor ──────────────────────────────────────────
+# Runs the auditor on every staged file before committing.
+# To skip: git commit --no-verify
+if [[ -f ".claude/hooks/auditor.sh" ]]; then
+  BLOCKED=0
+  while IFS= read -r staged_file; do
+    [[ -f "$staged_file" ]] || continue
+    CONTENT=$(git show ":$staged_file" 2>/dev/null) || continue
+    INPUT=$(printf '{"tool_name":"Write","tool_input":{"file_path":"%s","content":%s}}' \
+      "$staged_file" "$(echo "$CONTENT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo '""')")
+    if ! echo "$INPUT" | bash .claude/hooks/auditor.sh; then
+      BLOCKED=$((BLOCKED + 1))
+    fi
+  done < <(git diff --cached --name-only)
+  if [[ "$BLOCKED" -gt 0 ]]; then
+    echo ""
+    echo "[pre-commit] $BLOCKED file(s) blocked by AI Dev Kit auditor."
+    echo "[pre-commit] Fix the issues above or use --no-verify to skip."
+    exit 1
+  fi
+fi
+# ── end AI Dev Kit ────────────────────────────────────────────────────────────
+HOOK
+
+  ok "Pre-commit hook installed at $hook_file"
+  info "The auditor will now run on every git commit."
+  info "To bypass: git commit --no-verify"
 }
 
 main "$@"

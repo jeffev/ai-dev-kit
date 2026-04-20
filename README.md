@@ -111,6 +111,7 @@ Runs automatically on every file write by Claude Code via the `PreToolUse` hook.
 | J-006 | CRITICAL | Hardcoded JWT secret |
 | J-007 | MEDIUM | Generic `catch(Exception)` that swallows errors |
 | J-008 | MEDIUM | `@Scheduled` without `@Async` (blocks scheduler thread pool) |
+| J-009 | MEDIUM | `@Value` injecting a secret field directly — prefer `@ConfigurationProperties` |
 
 ### Angular / React rules
 
@@ -122,6 +123,7 @@ Runs automatically on every file write by Claude Code via the `PreToolUse` hook.
 | F-004 | CRITICAL | Secret in `environment.ts` or `.env` file |
 | F-005 | MEDIUM | `useEffect` without dependency array (runs on every render) |
 | F-006 | HIGH | Direct DOM manipulation in Angular component (`document.getElementById`) |
+| F-007 | LOW | `router.navigate` with hardcoded string literal in Angular component |
 
 ### Universal rules
 
@@ -162,9 +164,10 @@ U-002
 
 ```bash
 # After git add:
-bash smart-commit.sh           # review + commit
-bash smart-commit.sh --push    # review + commit + push
-bash smart-commit.sh --dry-run # preview only
+bash smart-commit.sh              # review + commit
+bash smart-commit.sh --push       # review + commit + push
+bash smart-commit.sh --dry-run    # preview only
+bash smart-commit.sh --no-review  # skip AI review (still blocks on CRITICAL/HIGH findings)
 
 # Or via ai-kit:
 bash ai-kit.sh commit --push
@@ -172,9 +175,10 @@ bash ai-kit.sh commit --push
 
 **Flow:**
 1. Reads `git diff --cached`
-2. Sends to `claude -p` for review: secrets, debug logs, SQL injection, unprotected endpoints
-3. If approved → generates a [Conventional Commits](https://www.conventionalcommits.org/) message
-4. Asks for confirmation → commits (and pushes if `--push`)
+2. Checks `audit.log` — blocks if open CRITICAL/HIGH findings exist today (prompts to override)
+3. Sends diff to `claude -p` for review: secrets, debug logs, SQL injection, unprotected endpoints
+4. If approved → generates a [Conventional Commits](https://www.conventionalcommits.org/) message
+5. Asks for confirmation → commits (and pushes if `--push`)
 
 ---
 
@@ -189,13 +193,17 @@ rules:
     files: "*.java"
     pattern: 'System\.exit\('
     message: "System.exit() must not be used. Throw a proper exception instead."
+    fix: "throw new IllegalStateException(\"reason\") or use Spring's ApplicationContext.close()"
 
   - id: C-002
     severity: MEDIUM
     files: "*.tsx,*.ts"
     pattern: '^\s*fetch\s*\('
     message: "Use the useApi() hook instead of calling fetch() directly."
+    fix: "const { data } = useApi('/endpoint')"
 ```
+
+The optional `fix:` field is appended to the auditor message to guide the developer on how to resolve the violation.
 
 Rules are applied automatically by the auditor on every file write.
 
@@ -219,11 +227,13 @@ Rules are applied automatically by the auditor on every file write.
 bash ai-kit.sh init                    # bootstrap the project
 bash ai-kit.sh update                  # update hooks and commands in-place
 bash ai-kit.sh doctor                  # diagnose installation issues
+bash ai-kit.sh stats                   # show audit metrics + 7-day activity chart
 bash ai-kit.sh commit                  # smart commit
 bash ai-kit.sh commit --push           # smart commit + push
 bash ai-kit.sh audit-test <file>       # test the auditor against a file
 bash ai-kit.sh audit-report            # generate markdown report from audit.log
 bash ai-kit.sh audit-report report.md  # write report to a specific file
+bash ai-kit.sh install-git-hook        # install auditor as a git pre-commit hook
 ```
 
 ---

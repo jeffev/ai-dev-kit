@@ -51,6 +51,8 @@ try:
             current['pattern'] = stripped.split(':', 1)[1].strip().strip('"\'')
         elif stripped.startswith('message:'):
             current['message'] = stripped.split(':', 1)[1].strip().strip('"\'')
+        elif stripped.startswith('fix:'):
+            current['fix'] = stripped.split(':', 1)[1].strip().strip('"\'')
 
     if current:
         rules.append(current)
@@ -71,14 +73,15 @@ PYEOF
 
   for i in $(seq 0 $((rule_count - 1))); do
     local rule
-    rule=$(echo "$rules_json" | python3 -c "import sys,json; r=json.load(sys.stdin)[$i]; print(r.get('id','?')+'|'+r.get('severity','MEDIUM')+'|'+r.get('files','*')+'|'+r.get('pattern','')+'|'+r.get('message','Custom rule violation'))")
+    rule=$(echo "$rules_json" | python3 -c "import sys,json; r=json.load(sys.stdin)[$i]; print(r.get('id','?')+'|'+r.get('severity','MEDIUM')+'|'+r.get('files','*')+'|'+r.get('pattern','')+'|'+r.get('message','Custom rule violation')+'|'+r.get('fix',''))")
 
-    local rule_id severity files_glob pattern message
-    rule_id=$(echo "$rule"   | cut -d'|' -f1)
-    severity=$(echo "$rule"  | cut -d'|' -f2)
+    local rule_id severity files_glob pattern message fix
+    rule_id=$(echo "$rule"    | cut -d'|' -f1)
+    severity=$(echo "$rule"   | cut -d'|' -f2)
     files_glob=$(echo "$rule" | cut -d'|' -f3)
-    pattern=$(echo "$rule"   | cut -d'|' -f4)
-    message=$(echo "$rule"   | cut -d'|' -f5)
+    pattern=$(echo "$rule"    | cut -d'|' -f4)
+    message=$(echo "$rule"    | cut -d'|' -f5)
+    fix=$(echo "$rule"        | cut -d'|' -f6)
 
     [[ -z "$pattern" ]] && continue
 
@@ -101,7 +104,9 @@ PYEOF
     if [[ -n "$match" ]]; then
       local line_num
       line_num=$(echo "$match" | grep -oP '^\d+')
-      FINDINGS+=("$severity|$rule_id|$file_path|${line_num:-1}|[Custom rule] $message|")
+      local full_msg="$message"
+      [[ -n "$fix" ]] && full_msg="$message Fix: $fix"
+      FINDINGS+=("$severity|$rule_id|$file_path|${line_num:-1}|[Custom rule] $full_msg|")
     fi
   done
 }

@@ -18,6 +18,7 @@ run_frontend_rules() {
     _frontend_env_secrets "$file_path" "$content_file"
     _frontend_useeffect_missing_deps "$file_path" "$content_file"
     _frontend_direct_dom "$file_path" "$content_file"
+    _frontend_hardcoded_route "$file_path" "$content_file"
   fi
 }
 
@@ -106,6 +107,23 @@ _frontend_useeffect_missing_deps() {
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
     FINDINGS+=("MEDIUM|F-005|$file_path|$line_num|useEffect without a dependency array runs on every render. Add [] for mount-only or list the actual dependencies.|")
+  fi
+}
+
+_frontend_hardcoded_route() {
+  local file_path="$1"
+  local content_file="$2"
+
+  # Only Angular .ts files
+  echo "$file_path" | grep -qiE '\.ts$' || return
+  grep -qiP '@Component|@Injectable' "$content_file" 2>/dev/null || return
+
+  local match
+  match=$(grep -inP 'this\.router\.navigate\s*\(\s*\[[\s'"'"'"]\/' "$content_file" 2>/dev/null | head -1)
+  if [[ -n "$match" ]]; then
+    local line_num
+    line_num=$(echo "$match" | grep -oP '^\d+')
+    FINDINGS+=("LOW|F-007|$file_path|$line_num|router.navigate with hardcoded string literal. Extract route paths into a typed Routes constant to prevent silent breakage on refactoring.|")
   fi
 }
 

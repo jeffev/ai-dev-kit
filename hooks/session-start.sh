@@ -82,6 +82,28 @@ if [[ -f "$ISTANBUL_JSON" ]]; then
   echo "  └─ Istanbul line coverage: ${LINES_PCT}%"
 fi
 
+# ── Custom rules ──────────────────────────────────────────────────────────────
+if [[ -f ".aikit-rules.yml" ]]; then
+  RULE_COUNT=$(grep -c '^\s*- id:' ".aikit-rules.yml" 2>/dev/null || echo 0)
+  echo ""
+  echo "  AI Dev Kit"
+  echo "  ├─ Custom rules: $RULE_COUNT active (.aikit-rules.yml)"
+
+  # Version check: compare installed auditor against source repo (if available)
+  INSTALLED_HASH=$(md5sum ".claude/hooks/auditor.sh" 2>/dev/null | cut -d' ' -f1 || echo "")
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  SOURCE_HASH=$(md5sum "$SCRIPT_DIR/auditor.sh" 2>/dev/null | cut -d' ' -f1 || echo "")
+  if [[ -n "$INSTALLED_HASH" && -n "$SOURCE_HASH" && "$INSTALLED_HASH" != "$SOURCE_HASH" ]]; then
+    echo "  └─ [!] Hooks are outdated — run: ai-kit update"
+  else
+    echo "  └─ Hooks up to date"
+  fi
+elif [[ -f ".aikit-rules.yml" ]]; then
+  echo ""
+  echo "  AI Dev Kit"
+  echo "  └─ No custom rules (.aikit-rules.yml not found)"
+fi
+
 # ── Audit log summary ─────────────────────────────────────────────────────────
 LOG=".claude/hooks/logs/audit.log"
 if [[ -f "$LOG" ]]; then

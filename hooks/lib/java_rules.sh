@@ -20,6 +20,7 @@ run_java_rules() {
     _java_hardcoded_jwt_secret "$file_path" "$content_file"
     _java_generic_catch "$file_path" "$content_file"
     _java_scheduled_without_async "$file_path" "$content_file"
+    _java_value_secret_injection "$file_path" "$content_file"
   fi
 }
 
@@ -152,5 +153,19 @@ _java_scheduled_without_async() {
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
     FINDINGS+=("MEDIUM|J-008|$file_path|$line_num|@Scheduled method without @Async. Long-running tasks block the scheduler thread pool. Add @Async and @EnableAsync on the config class.|")
+  fi
+}
+
+_java_value_secret_injection() {
+  local file_path="$1"
+  local content_file="$2"
+
+  # Detect @Value injecting a secret directly into a String field (not @ConfigurationProperties)
+  local match
+  match=$(grep -inP '@Value\s*\(\s*"\$\{(secret|password|token|api[._-]?key|jwt)[^}]*\}"\s*\)' "$content_file" 2>/dev/null | head -1)
+  if [[ -n "$match" ]]; then
+    local line_num
+    line_num=$(echo "$match" | grep -oP '^\d+')
+    FINDINGS+=("MEDIUM|J-009|$file_path|$line_num|@Value injecting a secret into a single field. Prefer @ConfigurationProperties with a dedicated config class for grouping and validation.|")
   fi
 }
