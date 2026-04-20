@@ -258,10 +258,6 @@
     .install-body .code-body pre { white-space: pre-wrap; word-break: break-all; }
 
     /* ── FLOW DIAGRAM ── */
-    .flow-diagram {
-      display: flex; align-items: center; justify-content: center;
-      gap: 0; flex-wrap: wrap; margin: 2.5rem 0;
-    }
     .flow-node {
       display: flex; flex-direction: column; align-items: center;
       text-align: center; min-width: 110px;
@@ -630,75 +626,87 @@
     <h2 class="section-title">From code to commit — fully guarded</h2>
     <p class="section-desc">Every file the AI writes passes through the auditor. Critical issues are blocked before they touch disk. Smart Commit adds a second layer before pushing.</p>
 
-    <div class="flow-diagram">
+    <!-- flow: single scrollable row, branches stacked vertically between diamond and next node -->
+    <div style="overflow-x:auto;margin:2.5rem 0 1.5rem;padding-bottom:.5rem;">
+      <div style="display:inline-flex;align-items:center;flex-wrap:nowrap;gap:0;min-width:max-content;padding:2rem 0 .5rem;">
 
-      <!-- Step: AI writes -->
-      <div class="flow-node">
-        <div class="flow-box flow-accent">AI writes<br/>a file</div>
-        <div class="flow-label">Claude Code</div>
-      </div>
-      <div class="flow-arrow">&#8594;</div>
-
-      <!-- Step: PreToolUse -->
-      <div class="flow-node">
-        <div class="flow-box">PreToolUse<br/>hook fires</div>
-        <div class="flow-label">auditor.sh</div>
-      </div>
-      <div class="flow-arrow">&#8594;</div>
-
-      <!-- Decision: severity -->
-      <div class="flow-node" style="min-width:90px;">
-        <div class="flow-decision">
-          <div class="flow-decision-text">severity?</div>
+        <!-- AI writes -->
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div class="flow-box flow-accent">AI writes<br/>a file</div>
+          <div class="flow-label">Claude Code</div>
         </div>
-        <div class="flow-label" style="margin-top:.9rem;">checks rules</div>
-      </div>
+        <div class="flow-arrow">&#8594;</div>
 
-      <!-- Branch: CRITICAL/HIGH vs MEDIUM/LOW -->
-      <div style="display:flex;flex-direction:column;gap:.5rem;align-items:flex-start;margin:0 .3rem 1.4rem;">
-        <div style="display:flex;align-items:center;gap:0;">
-          <div style="color:var(--danger);font-size:.75rem;font-weight:600;padding:0 .4rem;white-space:nowrap;">CRITICAL/HIGH &#8594;</div>
-          <div class="flow-box flow-block" style="width:100px;">Write<br/>blocked</div>
+        <!-- PreToolUse -->
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div class="flow-box">PreToolUse<br/>hook fires</div>
+          <div class="flow-label">auditor.sh</div>
         </div>
-        <div style="display:flex;align-items:center;gap:0;margin-top:.3rem;">
-          <div style="color:var(--warn);font-size:.75rem;font-weight:600;padding:0 .4rem;white-space:nowrap;">MEDIUM &#8594;</div>
-          <div class="flow-box flow-warn" style="width:100px;">Warning<br/>logged</div>
+        <div class="flow-arrow">&#8594;</div>
+
+        <!-- Severity diamond -->
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div class="flow-decision"><div class="flow-decision-text">severity?</div></div>
+          <div class="flow-label" style="margin-top:.9rem;">checks rules</div>
         </div>
-        <div style="display:flex;align-items:center;gap:0;margin-top:.3rem;">
-          <div style="color:var(--muted);font-size:.75rem;font-weight:600;padding:0 .4rem;white-space:nowrap;">LOW &#8594;</div>
-          <div class="flow-box" style="width:100px;">Silent<br/>audit.log</div>
+        <div class="flow-arrow">&#8594;</div>
+
+        <!-- Branches column -->
+        <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.4rem;">
+
+          <!-- CRITICAL/HIGH → blocked + loop back -->
+          <div style="display:flex;align-items:center;gap:.3rem;">
+            <span style="color:var(--danger);font-size:.72rem;font-weight:600;white-space:nowrap;min-width:110px;text-align:right;">CRITICAL/HIGH &#8594;</span>
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="flow-box flow-block" style="width:108px;">Write<br/>blocked</div>
+              <div style="font-size:.68rem;color:var(--danger);margin-top:.3rem;white-space:nowrap;">&#8626; fix &amp; retry</div>
+            </div>
+          </div>
+
+          <!-- MEDIUM → warning, continues right -->
+          <div style="display:flex;align-items:center;gap:.3rem;">
+            <span style="color:var(--warn);font-size:.72rem;font-weight:600;white-space:nowrap;min-width:110px;text-align:right;">MEDIUM &#8594;</span>
+            <div class="flow-box flow-warn" style="width:108px;">Warning<br/>logged</div>
+            <span style="color:var(--muted);padding-left:.3rem;">&#8594;</span>
+          </div>
+
+          <!-- LOW → silent, continues right -->
+          <div style="display:flex;align-items:center;gap:.3rem;">
+            <span style="color:var(--muted);font-size:.72rem;font-weight:600;white-space:nowrap;min-width:110px;text-align:right;">LOW &#8594;</span>
+            <div class="flow-box" style="width:108px;">Silent<br/>audit.log</div>
+            <span style="color:var(--muted);padding-left:.3rem;">&#8594;</span>
+          </div>
+
         </div>
+
+        <!-- Developer fixes -->
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div class="flow-box">Developer<br/>fixes issue</div>
+          <div class="flow-label">iterate</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+
+        <!-- Smart Commit -->
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div class="flow-box">Smart<br/>Commit</div>
+          <div class="flow-label">smart-commit.sh</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+
+        <!-- AI reviews diff -->
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div class="flow-box">AI reviews<br/>diff</div>
+          <div class="flow-label">claude -p</div>
+        </div>
+        <div class="flow-arrow">&#8594;</div>
+
+        <!-- Commit & push -->
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div class="flow-box flow-ok">Commit<br/>&amp; push</div>
+          <div class="flow-label">git push</div>
+        </div>
+
       </div>
-
-      <div class="flow-arrow">&#8594;</div>
-
-      <!-- Step: fix -->
-      <div class="flow-node">
-        <div class="flow-box">Developer<br/>fixes issue</div>
-        <div class="flow-label">iterate</div>
-      </div>
-      <div class="flow-arrow">&#8594;</div>
-
-      <!-- Step: smart commit -->
-      <div class="flow-node">
-        <div class="flow-box">Smart<br/>Commit</div>
-        <div class="flow-label">smart-commit.sh</div>
-      </div>
-      <div class="flow-arrow">&#8594;</div>
-
-      <!-- Step: AI review -->
-      <div class="flow-node">
-        <div class="flow-box">AI reviews<br/>diff</div>
-        <div class="flow-label">claude -p</div>
-      </div>
-      <div class="flow-arrow">&#8594;</div>
-
-      <!-- Step: commit + push -->
-      <div class="flow-node">
-        <div class="flow-box flow-ok">Commit<br/>&amp; push</div>
-        <div class="flow-label">git push</div>
-      </div>
-
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:1rem;">
