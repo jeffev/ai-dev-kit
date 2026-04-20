@@ -16,10 +16,9 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    // ❌ PROBLEMA J-003: System.out.println em vez de logger
-    // ❌ PROBLEMA J-004: @Transactional em método privado (não tem efeito)
+    // ❌ ISSUE J-003: System.out.println instead of a logger
     public List<UserResponse> findAll() {
-        System.out.println("Buscando todos os usuários");
+        System.out.println("Fetching all users");
         return userRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -33,7 +32,7 @@ public class UserService {
     }
 
     public UserResponse create(UserRequest request) {
-        System.out.println("Criando usuário: " + request.getEmail());
+        System.out.println("Creating user: " + request.getEmail());
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
@@ -45,7 +44,7 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    // ❌ PROBLEMA J-004: @Transactional em método privado não funciona no Spring
+    // ❌ ISSUE J-004: @Transactional on a private method has no effect in Spring AOP
     @Transactional
     private UserResponse toResponse(User user) {
         return UserResponse.builder()

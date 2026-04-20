@@ -4,12 +4,12 @@ Steps:
 1. Determine: component name, props interface, state needed, any hooks or context required
 2. Create the component file (.tsx):
    - Functional component with explicit Props interface (never use React.FC<>)
-   - Use named export (not default export) unless it's a page/route component
+   - Use named export (not default export) unless it is a page/route component
    - Type all props strictly — no `any`
 3. For state management:
    - Local state: useState, useReducer
    - Derived state: useMemo, useCallback with correct dependency arrays
-   - Side effects: useEffect — always return cleanup function if subscribing to anything
+   - Side effects: useEffect — always return a cleanup function if subscribing to anything
 4. Create the test file (.test.tsx):
    - Use Vitest + @testing-library/react
    - Test: renders without crashing, user interactions, async state changes

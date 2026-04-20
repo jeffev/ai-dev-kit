@@ -42,7 +42,7 @@ _check_hardcoded_secrets() {
       local line_num
       line_num=$(echo "$match" | grep -oP '^\d+')
       FINDINGS+=("CRITICAL|U-001|$file_path|$line_num|Possible hardcoded secret detected. Move to environment variables or a secrets manager.|")
-      return  # one finding per file is enough for this rule
+      return
     fi
   done
 }

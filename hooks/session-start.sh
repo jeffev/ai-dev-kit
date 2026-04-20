@@ -23,8 +23,8 @@ if command -v git &>/dev/null && git rev-parse --git-dir &>/dev/null 2>&1; then
   echo ""
   echo "  Git"
   echo "  ├─ Branch:    $BRANCH"
-  echo "  ├─ Modificados: $DIRTY arquivo(s)"
-  [[ "$AHEAD" -gt 0 ]] && echo "  └─ Push pendente: $AHEAD commit(s)" || echo "  └─ Sincronizado com remote"
+  echo "  ├─ Modified:  $DIRTY file(s)"
+  [[ "$AHEAD" -gt 0 ]] && echo "  └─ Unpushed:  $AHEAD commit(s)" || echo "  └─ In sync with remote"
 fi
 
 # ── Docker Compose status ─────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ if command -v docker &>/dev/null && [[ -f "docker-compose.yml" || -f "docker-com
   STATUS=$(docker compose ps --format "table {{.Name}}\t{{.Status}}" 2>/dev/null | tail -n +2 || echo "")
 
   if [[ -z "$STATUS" ]]; then
-    echo "  └─ Nenhum serviço rodando"
+    echo "  └─ No services running"
   else
     while IFS= read -r line; do
       NAME=$(echo "$line" | awk '{print $1}')
@@ -51,7 +51,7 @@ fi
 
 # ── Maven / Node check ────────────────────────────────────────────────────────
 echo ""
-echo "  Ambiente"
+echo "  Environment"
 
 if [[ -f "pom.xml" ]]; then
   JAVA_VER=$(java -version 2>&1 | grep -oP '(?<=version ")[^"]+' | head -1 || echo "?")
@@ -59,7 +59,7 @@ if [[ -f "pom.xml" ]]; then
 fi
 
 if [[ -f "package.json" ]]; then
-  NODE_VER=$(node --version 2>/dev/null || echo "não encontrado")
+  NODE_VER=$(node --version 2>/dev/null || echo "not found")
   echo "  ├─ Node $NODE_VER"
 fi
 
@@ -68,7 +68,7 @@ LOG=".claude/hooks/logs/audit.log"
 if [[ -f "$LOG" ]]; then
   TODAY=$(date '+%Y-%m-%d')
   TODAY_COUNT=$(grep -c "$TODAY" "$LOG" 2>/dev/null || echo 0)
-  [[ "$TODAY_COUNT" -gt 0 ]] && echo "  └─ ⚠  $TODAY_COUNT finding(s) LOW hoje no audit.log"
+  [[ "$TODAY_COUNT" -gt 0 ]] && echo "  └─ ⚠  $TODAY_COUNT LOW finding(s) today in audit.log"
 fi
 
 echo ""

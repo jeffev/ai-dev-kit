@@ -280,20 +280,20 @@ phase5_auditor() {
 
   touch .claude/hooks/logs/audit.log
 
-  ok "auditor.sh, post-java-write.sh, post-ts-write.sh  instalados"
-  ok "session-start.sh, stop-test-reminder.sh           instalados"
-  ok "lib/*.sh                                          instalados"
+  ok "auditor.sh, post-java-write.sh, post-ts-write.sh  installed"
+  ok "session-start.sh, stop-test-reminder.sh           installed"
+  ok "lib/*.sh                                          installed"
 
   # Copy .aikit-rules.yml example if none exists
   if [[ ! -f ".aikit-rules.yml" ]]; then
     cp "$AIKIT_DIR/aikit-rules.example.yml" ".aikit-rules.yml"
-    ok ".aikit-rules.yml criado (edite para adicionar regras do time)"
+    ok ".aikit-rules.yml created (edit to add your team's custom rules)"
   fi
 
   # Install smart-commit as a standalone script at project root
   cp "$hook_src/smart-commit.sh" "./smart-commit.sh"
   chmod +x "./smart-commit.sh"
-  ok "smart-commit.sh instalado na raiz do projeto"
+  ok "smart-commit.sh installed at project root"
 
   # Self-test: run auditor with a harmless synthetic input
   local test_input='{"tool_name":"Write","tool_input":{"file_path":"test.txt","content":"hello world"}}'
@@ -392,8 +392,8 @@ main() {
       echo "Commands:"
       echo "  init          Bootstrap AI tooling for the current project"
       echo "  audit-test    Run the auditor manually against a file"
-      echo "  commit        Review staged diff, gerar mensagem e commitar"
-      echo "                Flags: --push (faz push após commit), --dry-run"
+      echo "  commit        Review staged diff, generate commit message and commit"
+      echo "                Flags: --push (push after commit), --dry-run"
       ;;
   esac
 }

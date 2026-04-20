@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Custom rules loader — reads .aikit-rules.yml from project root
-# Functions: run_custom_rules <file_path> <content_file>
+# Functions: run_custom_rules <file_path> <content_file> [rules_file]
 # Appends findings to FINDINGS array (defined in auditor.sh)
 
 run_custom_rules() {
@@ -10,7 +10,6 @@ run_custom_rules() {
 
   [[ -f "$rules_file" ]] || return 0
 
-  # Parse YAML with Python3 (already a dependency for JSON parsing)
   if ! command -v python3 &>/dev/null; then
     return 0
   fi
@@ -26,8 +25,6 @@ try:
     with open(rules_file) as f:
         content = f.read()
 
-    # Simple YAML parser for our subset:
-    # list of mappings under "rules:" key
     current = {}
     in_rules = False
 
@@ -59,7 +56,7 @@ try:
         rules.append(current)
 
     print(json.dumps(rules))
-except Exception as e:
+except Exception:
     print('[]')
 PYEOF
 )
@@ -69,7 +66,6 @@ PYEOF
   local file_basename
   file_basename=$(basename "$file_path")
 
-  # Iterate rules
   local rule_count
   rule_count=$(echo "$rules_json" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
 
@@ -78,20 +74,18 @@ PYEOF
     rule=$(echo "$rules_json" | python3 -c "import sys,json; r=json.load(sys.stdin)[$i]; print(r.get('id','?')+'|'+r.get('severity','MEDIUM')+'|'+r.get('files','*')+'|'+r.get('pattern','')+'|'+r.get('message','Custom rule violation'))")
 
     local rule_id severity files_glob pattern message
-    rule_id=$(echo "$rule"  | cut -d'|' -f1)
-    severity=$(echo "$rule" | cut -d'|' -f2)
+    rule_id=$(echo "$rule"   | cut -d'|' -f1)
+    severity=$(echo "$rule"  | cut -d'|' -f2)
     files_glob=$(echo "$rule" | cut -d'|' -f3)
-    pattern=$(echo "$rule"  | cut -d'|' -f4)
-    message=$(echo "$rule"  | cut -d'|' -f5)
+    pattern=$(echo "$rule"   | cut -d'|' -f4)
+    message=$(echo "$rule"   | cut -d'|' -f5)
 
     [[ -z "$pattern" ]] && continue
 
-    # Check if this rule applies to the current file
     local applies=false
     IFS=',' read -ra globs <<< "$files_glob"
     for glob in "${globs[@]}"; do
       glob=$(echo "$glob" | tr -d ' ')
-      # Convert glob to regex: *.java → \.java$
       local regex
       regex=$(echo "$glob" | sed 's/\./\\./g; s/\*/.*/g')
       if echo "$file_basename" | grep -qP "$regex"; then
@@ -107,7 +101,7 @@ PYEOF
     if [[ -n "$match" ]]; then
       local line_num
       line_num=$(echo "$match" | grep -oP '^\d+')
-      FINDINGS+=("$severity|$rule_id|$file_path|${line_num:-1}|[Regra customizada] $message|")
+      FINDINGS+=("$severity|$rule_id|$file_path|${line_num:-1}|[Custom rule] $message|")
     fi
   done
 }

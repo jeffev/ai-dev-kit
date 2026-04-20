@@ -1,42 +1,42 @@
-# .aikit-rules.yml — Regras customizadas do AI Dev Kit
-# Coloque este arquivo na raiz do projeto como: .aikit-rules.yml
+# .aikit-rules.yml — AI Dev Kit custom rules
+# Place this file at the project root as: .aikit-rules.yml
 #
-# Severidades: CRITICAL | HIGH | MEDIUM | LOW
-# files: glob separado por vírgula (ex: "*.java", "*.ts,*.tsx", "*")
-# pattern: regex compatível com grep -P
+# Severities: CRITICAL | HIGH | MEDIUM | LOW
+# files: comma-separated glob (e.g. "*.java", "*.ts,*.tsx", "*")
+# pattern: regex compatible with grep -P
 
 rules:
-  # Exemplo: bloquear uso de System.exit() em qualquer lugar
+  # Example: block System.exit() anywhere in production code
   - id: C-001
     severity: HIGH
     files: "*.java"
     pattern: 'System\.exit\('
-    message: "System.exit() não deve ser usado em produção. Lance uma exceção adequada."
+    message: "System.exit() must not be used in production. Throw a proper exception instead."
 
-  # Exemplo: proibir imports de classes deprecated do time
+  # Example: ban imports from deprecated internal packages
   - id: C-002
     severity: MEDIUM
     files: "*.java"
     pattern: 'import com\.example\.legacy\.'
-    message: "Pacote legacy deprecado. Use os equivalentes em com.example.core."
+    message: "Deprecated legacy package. Use the equivalent classes in com.example.core."
 
-  # Exemplo: proibir fetch() direto em componentes React (deve usar hooks customizados)
+  # Example: ban raw fetch() calls in React components (use custom hooks instead)
   - id: C-003
     severity: MEDIUM
     files: "*.tsx,*.ts"
     pattern: '^\s*fetch\s*\('
-    message: "Use o hook customizado useApi() em vez de fetch() direto em componentes."
+    message: "Use the custom useApi() hook instead of calling fetch() directly in components."
 
-  # Exemplo: garantir que arquivos de migração sigam o padrão de nomenclatura
+  # Example: enforce safe DROP TABLE in SQL migrations
   - id: C-004
     severity: LOW
     files: "*.sql"
     pattern: 'DROP TABLE(?! IF EXISTS)'
-    message: "Prefira DROP TABLE IF EXISTS para evitar erros em re-execução."
+    message: "Prefer DROP TABLE IF EXISTS to avoid errors on re-execution."
 
-  # Exemplo: bloquear console.error nos testes (usa logger mockado)
+  # Example: no console.error in test files (spy on it instead)
   - id: C-005
     severity: LOW
     files: "*.spec.ts"
     pattern: 'console\.error\('
-    message: "Nos testes, spy no console.error em vez de chamá-lo diretamente."
+    message: "In tests, spy on console.error instead of calling it directly."

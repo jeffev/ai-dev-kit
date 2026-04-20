@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// ❌ PROBLEMA J-002: @RestController sem @PreAuthorize em nenhum endpoint
+// ❌ ISSUE J-002: @RestController with no @PreAuthorize on any endpoint
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -27,7 +27,7 @@ public class UserController {
         return ResponseEntity.ok(userService.findById(id));
     }
 
-    // ❌ PROBLEMA J-002: endpoint de deleção sem qualquer proteção de role
+    // ❌ ISSUE J-002: delete endpoint with no role protection
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         userService.delete(id);

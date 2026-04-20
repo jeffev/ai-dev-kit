@@ -36,7 +36,6 @@ _frontend_typescript_any() {
   local file_path="$1"
   local content_file="$2"
 
-  # Match ": any" or "as any" but not in comments
   local match
   match=$(grep -inP '(?<!\/\/.*):\s*any\b|as\s+any\b' "$content_file" 2>/dev/null | grep -v '^\s*//' | head -1)
   if [[ -n "$match" ]]; then
@@ -50,7 +49,7 @@ _frontend_subscribe_leak() {
   local file_path="$1"
   local content_file="$2"
 
-  # Only applies to Angular .ts files (not React)
+  # Only applies to Angular .ts files
   echo "$file_path" | grep -qiE '\.ts$' || return
   grep -qiP '@Component|@Injectable|@Directive|@Pipe' "$content_file" 2>/dev/null || return
 
@@ -58,7 +57,6 @@ _frontend_subscribe_leak() {
   has_subscribe=$(grep -cP '\.subscribe\s*\(' "$content_file" 2>/dev/null || echo 0)
   [[ "$has_subscribe" -eq 0 ]] && return
 
-  # Check for unsubscribe strategies
   if ! grep -qP 'takeUntil|takeUntilDestroyed|unsubscribe\(\)|async\s+pipe|Subscription' "$content_file" 2>/dev/null; then
     local line_num
     line_num=$(grep -nP '\.subscribe\s*\(' "$content_file" 2>/dev/null | head -1 | grep -oP '^\d+')
@@ -70,7 +68,6 @@ _frontend_env_secrets() {
   local file_path="$1"
   local content_file="$2"
 
-  # Only applies to environment/config files
   echo "$file_path" | grep -qiE '(environment\.(ts|js|prod|staging)|\.env(\.|$)|config\.(ts|js))' || return
 
   local match

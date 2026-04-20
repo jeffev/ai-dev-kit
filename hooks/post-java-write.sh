@@ -28,17 +28,16 @@ echo "$FILE_PATH" >> "$SESSION_FILE"
 [[ -f "./mvnw" ]] || exit 0
 
 echo ""
-echo "[post-write] Compilando após edição em $(basename "$FILE_PATH")..."
+echo "[post-write] Compiling after edit: $(basename "$FILE_PATH")..."
 
 # Run compile — suppress info output, show only errors
 OUTPUT=$(./mvnw compile -q 2>&1) && STATUS=0 || STATUS=$?
 
 if [[ $STATUS -eq 0 ]]; then
-  echo "[post-write] ✔ Compilação OK"
+  echo "[post-write] ✔ Compilation OK"
 else
-  echo "[post-write] ✘ Erros de compilação:"
-  # Filter noise — show only ERROR lines and the lines around them
+  echo "[post-write] ✘ Compilation errors:"
   echo "$OUTPUT" | grep -A2 '\[ERROR\]' | grep -v '^\-\-$' | head -30
   echo ""
-  echo "[post-write] Corrija os erros antes de continuar."
+  echo "[post-write] Fix the errors above before continuing."
 fi

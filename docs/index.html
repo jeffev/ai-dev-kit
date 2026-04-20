@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Dev Kit — Bootstrap de IA para devs Java & Frontend</title>
-  <meta name="description" content="Configure seu projeto para usar IA com máxima eficiência. Auditor de segurança em tempo real, hooks automáticos, smart commit e slash commands para Spring Boot, Angular e React." />
+  <title>AI Dev Kit — AI Bootstrap for Java &amp; Frontend Developers</title>
+  <meta name="description" content="Configure your project for AI-assisted development with maximum efficiency. Real-time security auditor, automatic hooks, smart commit and slash commands for Spring Boot, Angular and React." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -283,21 +283,21 @@
   <div class="nav-logo">⚡ <span>ai</span>-dev-kit</div>
   <div class="nav-links">
     <a href="#features">Features</a>
-    <a href="#como-funciona">Como funciona</a>
-    <a href="#regras">Regras</a>
-    <a href="#instalacao">Instalação</a>
+    <a href="#how-it-works">How it works</a>
+    <a href="#rules">Rules</a>
+    <a href="#installation">Installation</a>
   </div>
-  <a class="nav-cta" href="https://github.com/seu-usuario/ai-dev-kit">GitHub →</a>
+  <a class="nav-cta" href="https://github.com/jeffev/ai-dev-kit">GitHub →</a>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
   <div class="hero-badge">⚡ Powered by Claude Code</div>
-  <h1>IA no seu projeto.<br /><em>Do jeito certo.</em></h1>
-  <p>Bootstrap completo em um comando. Auditor de segurança em tempo real, hooks automáticos, smart commit e slash commands para Spring Boot, Angular e React.</p>
+  <h1>AI in your project.<br /><em>Done right.</em></h1>
+  <p>Full bootstrap in one command. Real-time security auditor, automatic hooks, smart commit and slash commands for Spring Boot, Angular and React.</p>
   <div class="hero-actions">
-    <a class="btn-primary" href="#instalacao">Começar agora →</a>
-    <a class="btn-secondary" href="https://github.com/seu-usuario/ai-dev-kit">Ver no GitHub</a>
+    <a class="btn-primary" href="#installation">Get started →</a>
+    <a class="btn-secondary" href="https://github.com/jeffev/ai-dev-kit">View on GitHub</a>
   </div>
 
   <div class="terminal-wrap">
@@ -323,7 +323,7 @@
       <div>&nbsp; <span class="t-ok">OK</span>  CLAUDE.md written (847 bytes)</div>
       <div>&nbsp;</div>
       <div><span class="t-muted">[Phase 5]</span> Installing Auditor</div>
-      <div>&nbsp; <span class="t-ok">OK</span>  auditor.sh, post-java-write.sh instalados</div>
+      <div>&nbsp; <span class="t-ok">OK</span>  auditor.sh, post-java-write.sh installed</div>
       <div>&nbsp; <span class="t-ok">OK</span>  session-start.sh, stop-test-reminder.sh</div>
       <div>&nbsp; <span class="t-ok">OK</span>  Auditor self-test: PASSED</div>
       <div>&nbsp;</div>
@@ -337,84 +337,84 @@
 <section id="features" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
   <div class="section-inner">
     <div class="section-label">Features</div>
-    <h2 class="section-title">Tudo que você precisa, já configurado</h2>
-    <p class="section-desc">Do bootstrap inicial ao dia a dia — o AI Dev Kit cobre cada ponto de contato entre você e a IA.</p>
+    <h2 class="section-title">Everything you need, already configured</h2>
+    <p class="section-desc">From initial bootstrap to daily work — AI Dev Kit covers every touchpoint between you and the AI.</p>
 
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">🛡️</div>
-        <h3>Auditor em tempo real</h3>
-        <p>Intercepta toda escrita de arquivo via PreToolUse hook. Bloqueia SQL Injection, secrets hardcoded, endpoints sem autenticação antes de chegar no disco.</p>
+        <h3>Real-time auditor</h3>
+        <p>Intercepts every file write via PreToolUse hook. Blocks SQL Injection, hardcoded secrets, unauthenticated endpoints before they hit disk.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📄</div>
-        <h3>CLAUDE.md gerado</h3>
-        <p>Lê <code>pom.xml</code>, <code>package.json</code> e estrutura do projeto. Gera um contexto preciso e específico — não boilerplate genérico.</p>
+        <h3>Generated CLAUDE.md</h3>
+        <p>Reads <code>pom.xml</code>, <code>package.json</code> and project structure. Generates precise, project-specific context — not generic boilerplate.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">⚡</div>
-        <h3>Compile & type check</h3>
-        <p>PostToolUse hook roda <code>./mvnw compile</code> após cada <code>.java</code> e <code>tsc --noEmit</code> após cada <code>.ts</code>. Erros aparecem na hora.</p>
+        <h3>Compile &amp; type check</h3>
+        <p>PostToolUse hook runs <code>./mvnw compile</code> after each <code>.java</code> and <code>tsc --noEmit</code> after each <code>.ts</code>. Errors surface immediately.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🚀</div>
         <h3>Smart Commit</h3>
-        <p>Revisa o diff via IA, bloqueia se encontrar problemas, gera mensagem Conventional Commit automaticamente e faz push.</p>
+        <p>Reviews the diff via AI, blocks if issues are found, generates a Conventional Commit message automatically and pushes.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">⌨️</div>
         <h3>Slash Commands</h3>
-        <p>Comandos prontos e específicos para o seu stack: <code>/project:endpoint</code>, <code>/project:test</code>, <code>/project:secure</code>, <code>/project:migration</code>.</p>
+        <p>Ready-to-use commands tailored to your stack: <code>/project:endpoint</code>, <code>/project:test</code>, <code>/project:secure</code>, <code>/project:migration</code>.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📋</div>
-        <h3>Regras customizadas</h3>
-        <p>Defina as regras do time em <code>.aikit-rules.yml</code> com padrões regex, severidade e mensagem. O auditor as aplica automaticamente.</p>
+        <h3>Custom rules</h3>
+        <p>Define your team's rules in <code>.aikit-rules.yml</code> with regex patterns, severity and message. The auditor applies them automatically.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- COMO FUNCIONA -->
-<section id="como-funciona">
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
   <div class="section-inner">
-    <div class="section-label">Como funciona</div>
-    <h2 class="section-title">Um comando. Tudo configurado.</h2>
-    <p class="section-desc">O <code>ai-kit init</code> analisa o projeto e configura cada peça automaticamente.</p>
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">One command. Everything configured.</h2>
+    <p class="section-desc"><code>ai-kit init</code> analyzes your project and sets up each piece automatically.</p>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start;">
       <div class="steps">
-        <div class="step"><div class="step-num">0</div><div><h3>Pre-flight</h3><p>Verifica claude CLI, git e python3.</p></div></div>
-        <div class="step"><div class="step-num">1</div><div><h3>Detecção de stack</h3><p>Lê pom.xml, package.json, angular.json. Detecta 20+ características do projeto.</p></div></div>
-        <div class="step"><div class="step-num">2</div><div><h3>Gera CLAUDE.md</h3><p>Usa <code>claude -p</code> para gerar contexto real — arquitetura, convenções, comandos de teste.</p></div></div>
-        <div class="step"><div class="step-num">3</div><div><h3>Configura hooks</h3><p>Escreve o .claude/settings.json com todos os hooks mapeados para o stack detectado.</p></div></div>
-        <div class="step"><div class="step-num">4</div><div><h3>Instala comandos</h3><p>Só os comandos relevantes para o seu stack — sem poluição desnecessária.</p></div></div>
-        <div class="step"><div class="step-num">5</div><div><h3>Deploy do Auditor</h3><p>Copia os scripts de hook e faz self-test para garantir que está funcionando.</p></div></div>
+        <div class="step"><div class="step-num">0</div><div><h3>Pre-flight</h3><p>Verifies claude CLI, git and python3.</p></div></div>
+        <div class="step"><div class="step-num">1</div><div><h3>Stack detection</h3><p>Reads pom.xml, package.json, angular.json. Detects 20+ project characteristics.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div><h3>Generate CLAUDE.md</h3><p>Uses <code>claude -p</code> to generate real context — architecture, conventions, test commands.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div><h3>Configure hooks</h3><p>Writes .claude/settings.json with all hooks mapped to the detected stack.</p></div></div>
+        <div class="step"><div class="step-num">4</div><div><h3>Install commands</h3><p>Only the commands relevant to your stack — no unnecessary clutter.</p></div></div>
+        <div class="step"><div class="step-num">5</div><div><h3>Deploy Auditor</h3><p>Copies hook scripts and runs a self-test to confirm everything is working.</p></div></div>
       </div>
 
       <div>
         <div class="terminal-wrap" style="margin-top: 0;">
           <div class="terminal-bar">
             <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
-            <div class="terminal-title">Auditor bloqueando escrita</div>
+            <div class="terminal-title">Auditor blocking write</div>
           </div>
           <div class="terminal-body">
             <div><span class="t-err">[AUDITOR] CRITICAL — Rule J-001 (Write blocked)</span></div>
             <div><span class="t-muted">File:    src/.../UserRepository.java:42</span></div>
-            <div><span class="t-muted">Fix:     SQL Injection risk: input concatenado</span></div>
-            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;em SQL string. Use @Query com</div>
-            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;named parameters ou PreparedStatement.</div>
+            <div><span class="t-muted">Fix:     SQL Injection risk: input concatenated</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;in SQL string. Use @Query with</div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;named parameters or PreparedStatement.</div>
             <div>&nbsp;</div>
-            <div><span class="t-err">Write blocked. Corrija e tente novamente.</span></div>
+            <div><span class="t-err">Write blocked. Fix the issue and try again.</span></div>
             <div>&nbsp;</div>
             <div><span class="t-dim">──────────────────────────────────────</span></div>
             <div>&nbsp;</div>
             <div><span class="t-warn">[AUDITOR] MEDIUM — Rule J-003</span></div>
             <div><span class="t-muted">File:    src/.../OrderService.java:78</span></div>
-            <div><span class="t-muted">Fix:     System.out.println detectado.</span></div>
+            <div><span class="t-muted">Fix:     System.out.println detected.</span></div>
             <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Use: log.info("Order: {}", orderId);</div>
             <div>&nbsp;</div>
-            <div><span class="t-ok">File written. Resolva antes do merge.</span></div>
+            <div><span class="t-ok">File written. Resolve before merging.</span></div>
           </div>
         </div>
 
@@ -426,17 +426,17 @@
           <div class="terminal-body">
             <div><span class="t-prompt">$</span> <span class="t-accent">bash smart-commit.sh --push</span></div>
             <div>&nbsp;</div>
-            <div><span class="t-muted">…  3 arquivo(s) em stage</span></div>
-            <div><span class="t-muted">…  Revisando alterações...</span></div>
-            <div><span class="t-ok">✔  Review aprovado</span></div>
-            <div><span class="t-muted">…  Gerando mensagem de commit...</span></div>
+            <div><span class="t-muted">…  3 file(s) staged</span></div>
+            <div><span class="t-muted">…  Reviewing changes...</span></div>
+            <div><span class="t-ok">✔  Review approved</span></div>
+            <div><span class="t-muted">…  Generating commit message...</span></div>
             <div>&nbsp;</div>
-            <div><span class="t-bold">Mensagem gerada:</span></div>
-            <div>&nbsp; <span class="t-purple">feat(user): adiciona endpoint de busca por email</span></div>
+            <div><span class="t-bold">Generated message:</span></div>
+            <div>&nbsp; <span class="t-purple">feat(user): add search-by-email endpoint</span></div>
             <div>&nbsp;</div>
-            <div>&nbsp; Confirmar commit? [S/n] <span class="t-accent">S</span></div>
-            <div><span class="t-ok">✔  Commit criado</span></div>
-            <div><span class="t-ok">✔  Push concluído → main</span></div>
+            <div>&nbsp; Confirm commit? [Y/n] <span class="t-accent">Y</span></div>
+            <div><span class="t-ok">✔  Commit created</span></div>
+            <div><span class="t-ok">✔  Push complete → main</span></div>
           </div>
         </div>
       </div>
@@ -444,58 +444,58 @@
   </div>
 </section>
 
-<!-- REGRAS -->
-<section id="regras" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+<!-- RULES -->
+<section id="rules" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
   <div class="section-inner">
     <div class="section-label">Auditor</div>
-    <h2 class="section-title">Regras de qualidade e segurança</h2>
-    <p class="section-desc">14 regras prontas para Java, Angular, React e qualquer arquivo. Extensíveis via <code>.aikit-rules.yml</code>.</p>
+    <h2 class="section-title">Quality &amp; security rules</h2>
+    <p class="section-desc">14 built-in rules for Java, Angular, React and any file. Extensible via <code>.aikit-rules.yml</code>.</p>
 
     <div class="rules-tabs">
       <button class="tab-btn active" onclick="showTab('java')">Java / Spring Boot</button>
       <button class="tab-btn" onclick="showTab('frontend')">Angular / React</button>
       <button class="tab-btn" onclick="showTab('universal')">Universal</button>
-      <button class="tab-btn" onclick="showTab('custom')">Customizadas</button>
+      <button class="tab-btn" onclick="showTab('custom')">Custom</button>
     </div>
 
     <div id="tab-java" class="rules-panel active">
       <table>
-        <thead><tr><th>ID</th><th>Severidade</th><th>Descrição</th></tr></thead>
+        <thead><tr><th>ID</th><th>Severity</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>J-001</code></td><td><span class="badge badge-critical">CRITICAL</span></td><td>SQL Injection por concatenação de string em queries</td></tr>
-          <tr><td><code>J-002</code></td><td><span class="badge badge-high">HIGH</span></td><td><code>@RestController</code> sem <code>@PreAuthorize</code> em nenhum endpoint</td></tr>
-          <tr><td><code>J-003</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td><code>System.out.println</code> em código de produção</td></tr>
-          <tr><td><code>J-004</code></td><td><span class="badge badge-high">HIGH</span></td><td><code>@Transactional</code> em método privado (sem efeito no Spring AOP)</td></tr>
-          <tr><td><code>J-005</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td><code>@Entity</code> JPA sem <code>equals/hashCode</code> adequado</td></tr>
-          <tr><td><code>J-006</code></td><td><span class="badge badge-critical">CRITICAL</span></td><td>JWT secret hardcoded no código fonte</td></tr>
+          <tr><td><code>J-001</code></td><td><span class="badge badge-critical">CRITICAL</span></td><td>SQL Injection via string concatenation in queries</td></tr>
+          <tr><td><code>J-002</code></td><td><span class="badge badge-high">HIGH</span></td><td><code>@RestController</code> with no <code>@PreAuthorize</code> on any endpoint</td></tr>
+          <tr><td><code>J-003</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td><code>System.out.println</code> in production code</td></tr>
+          <tr><td><code>J-004</code></td><td><span class="badge badge-high">HIGH</span></td><td><code>@Transactional</code> on a private method (no effect in Spring AOP)</td></tr>
+          <tr><td><code>J-005</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td>JPA <code>@Entity</code> missing proper <code>equals/hashCode</code></td></tr>
+          <tr><td><code>J-006</code></td><td><span class="badge badge-critical">CRITICAL</span></td><td>Hardcoded JWT secret in source code</td></tr>
         </tbody>
       </table>
     </div>
 
     <div id="tab-frontend" class="rules-panel">
       <table>
-        <thead><tr><th>ID</th><th>Severidade</th><th>Descrição</th></tr></thead>
+        <thead><tr><th>ID</th><th>Severity</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>F-001</code></td><td><span class="badge badge-low">LOW</span></td><td><code>console.log</code> em código de produção</td></tr>
-          <tr><td><code>F-002</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td>TypeScript <code>any</code> explícito</td></tr>
-          <tr><td><code>F-003</code></td><td><span class="badge badge-high">HIGH</span></td><td><code>.subscribe()</code> sem <code>takeUntilDestroyed</code> ou <code>unsubscribe</code> — memory leak Angular</td></tr>
-          <tr><td><code>F-004</code></td><td><span class="badge badge-critical">CRITICAL</span></td><td>Secret em <code>environment.ts</code>, <code>.env</code> ou arquivo de config frontend</td></tr>
+          <tr><td><code>F-001</code></td><td><span class="badge badge-low">LOW</span></td><td><code>console.log</code> in production code</td></tr>
+          <tr><td><code>F-002</code></td><td><span class="badge badge-medium">MEDIUM</span></td><td>Explicit TypeScript <code>any</code></td></tr>
+          <tr><td><code>F-003</code></td><td><span class="badge badge-high">HIGH</span></td><td><code>.subscribe()</code> without <code>takeUntilDestroyed</code> or <code>unsubscribe</code> — Angular memory leak</td></tr>
+          <tr><td><code>F-004</code></td><td><span class="badge badge-critical">CRITICAL</span></td><td>Secret in <code>environment.ts</code>, <code>.env</code> or frontend config file</td></tr>
         </tbody>
       </table>
     </div>
 
     <div id="tab-universal" class="rules-panel">
       <table>
-        <thead><tr><th>ID</th><th>Severidade</th><th>Descrição</th></tr></thead>
+        <thead><tr><th>ID</th><th>Severity</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>U-001</code></td><td><span class="badge badge-critical">CRITICAL</span></td><td>Hardcoded password, token, API key ou chave privada</td></tr>
-          <tr><td><code>U-002</code></td><td><span class="badge badge-low">LOW</span></td><td><code>TODO</code> / <code>FIXME</code> em código novo</td></tr>
+          <tr><td><code>U-001</code></td><td><span class="badge badge-critical">CRITICAL</span></td><td>Hardcoded password, token, API key or private key</td></tr>
+          <tr><td><code>U-002</code></td><td><span class="badge badge-low">LOW</span></td><td><code>TODO</code> / <code>FIXME</code> in new code</td></tr>
         </tbody>
       </table>
     </div>
 
     <div id="tab-custom" class="rules-panel">
-      <p style="color: var(--muted); margin-bottom: 1.5rem;">Defina regras do seu time em <code>.aikit-rules.yml</code> na raiz do projeto:</p>
+      <p style="color: var(--muted); margin-bottom: 1.5rem;">Define your team's rules in <code>.aikit-rules.yml</code> at the project root:</p>
       <div class="code-wrap">
         <div class="code-header"><span class="code-lang">yaml — .aikit-rules.yml</span></div>
         <div class="code-body"><pre><span class="k">rules</span>:
@@ -503,27 +503,27 @@
     <span class="k">severity</span>: <span class="v">HIGH</span>
     <span class="k">files</span>: <span class="s">"*.java"</span>
     <span class="k">pattern</span>: <span class="s">'System\.exit\('</span>
-    <span class="k">message</span>: <span class="s">"System.exit() não deve ser usado. Lance uma exceção."</span>
+    <span class="k">message</span>: <span class="s">"System.exit() must not be used. Throw a proper exception instead."</span>
 
   - <span class="k">id</span>: <span class="v">C-002</span>
     <span class="k">severity</span>: <span class="v">MEDIUM</span>
     <span class="k">files</span>: <span class="s">"*.tsx,*.ts"</span>
     <span class="k">pattern</span>: <span class="s">'^\s*fetch\s*\('</span>
-    <span class="k">message</span>: <span class="s">"Use o hook useApi() em vez de fetch() direto."</span></pre></div>
+    <span class="k">message</span>: <span class="s">"Use the useApi() hook instead of calling fetch() directly."</span></pre></div>
       </div>
       <p style="color: var(--muted); font-size: .88rem; margin-top: 1rem;">
-        Campos: <code>id</code>, <code>severity</code> (CRITICAL/HIGH/MEDIUM/LOW), <code>files</code> (glob), <code>pattern</code> (regex grep -P), <code>message</code>
+        Fields: <code>id</code>, <code>severity</code> (CRITICAL/HIGH/MEDIUM/LOW), <code>files</code> (glob), <code>pattern</code> (regex grep -P), <code>message</code>
       </p>
     </div>
   </div>
 </section>
 
-<!-- INSTALAÇÃO -->
-<section id="instalacao">
+<!-- INSTALLATION -->
+<section id="installation">
   <div class="section-inner">
-    <div class="section-label">Instalação</div>
-    <h2 class="section-title">Pronto em minutos</h2>
-    <p class="section-desc">Requisitos: <a href="https://claude.ai/code">Claude Code CLI</a>, bash (Git Bash no Windows), python3, git.</p>
+    <div class="section-label">Installation</div>
+    <h2 class="section-title">Ready in minutes</h2>
+    <p class="section-desc">Requirements: <a href="https://claude.ai/code">Claude Code CLI</a>, bash (Git Bash on Windows), python3, git.</p>
 
     <div class="install-steps">
 
@@ -533,7 +533,7 @@
           <div class="install-line"></div>
         </div>
         <div class="install-body">
-          <h3>Clone o repositório</h3>
+          <h3>Clone the repository</h3>
           <div class="code-wrap">
             <div class="code-body"><pre>git clone https://github.com/jeffev/ai-dev-kit.git</pre></div>
           </div>
@@ -546,10 +546,10 @@
           <div class="install-line"></div>
         </div>
         <div class="install-body">
-          <h3>Rode na raiz do seu projeto</h3>
+          <h3>Run from your project root</h3>
           <div class="code-wrap">
-            <div class="code-body"><pre>cd meu-projeto
-bash /caminho/para/ai-dev-kit/ai-kit.sh init</pre></div>
+            <div class="code-body"><pre>cd my-project
+bash /path/to/ai-dev-kit/ai-kit.sh init</pre></div>
           </div>
         </div>
       </div>
@@ -560,11 +560,11 @@ bash /caminho/para/ai-dev-kit/ai-kit.sh init</pre></div>
           <div class="install-line"></div>
         </div>
         <div class="install-body">
-          <h3>Abra o Claude Code</h3>
+          <h3>Open Claude Code</h3>
           <div class="code-wrap">
             <div class="code-body"><pre>claude
-<span class="c"># SessionStart mostra status git + Docker</span>
-<span class="c"># Auditor ativo em toda escrita de arquivo</span></pre></div>
+<span class="c"># SessionStart shows git + Docker status</span>
+<span class="c"># Auditor active on every file write</span></pre></div>
           </div>
         </div>
       </div>
@@ -574,7 +574,7 @@ bash /caminho/para/ai-dev-kit/ai-kit.sh init</pre></div>
           <div class="install-num">4</div>
         </div>
         <div class="install-body">
-          <h3>Use o Smart Commit no lugar do git commit</h3>
+          <h3>Use Smart Commit instead of git commit</h3>
           <div class="code-wrap">
             <div class="code-body"><pre>git add .
 bash smart-commit.sh --push</pre></div>
@@ -585,15 +585,15 @@ bash smart-commit.sh --push</pre></div>
     </div>
 
     <div style="margin-top: 2.5rem; padding: 1.5rem; background: rgba(88,166,255,.07); border: 1px solid rgba(88,166,255,.2); border-radius: var(--radius);">
-      <strong>💡 Sugestão:</strong> adicione um alias no seu shell para usar de qualquer projeto:
+      <strong>💡 Tip:</strong> add a shell alias to use it from any project:
       <div class="code-wrap" style="margin-top: .75rem;">
-        <div class="code-body"><pre><span class="c"># ~/.bashrc ou ~/.zshrc</span>
-<span class="k">alias</span> <span class="v">ai-kit</span>=<span class="s">"bash /caminho/para/ai-dev-kit/ai-kit.sh"</span>
+        <div class="code-body"><pre><span class="c"># ~/.bashrc or ~/.zshrc</span>
+<span class="k">alias</span> <span class="v">ai-kit</span>=<span class="s">"bash /path/to/ai-dev-kit/ai-kit.sh"</span>
 
-<span class="c"># Uso:</span>
+<span class="c"># Usage:</span>
 ai-kit init
 ai-kit commit --push
-ai-kit audit-test src/main/java/MinhaClasse.java</pre></div>
+ai-kit audit-test src/main/java/MyClass.java</pre></div>
       </div>
     </div>
   </div>
@@ -602,8 +602,8 @@ ai-kit audit-test src/main/java/MinhaClasse.java</pre></div>
 <!-- FOOTER -->
 <footer>
   <p>
-    Feito com ☕ e <a href="https://claude.ai/code">Claude Code</a> &nbsp;·&nbsp;
-    <a href="https://github.com/seu-usuario/ai-dev-kit">GitHub</a> &nbsp;·&nbsp;
+    Made with ☕ and <a href="https://claude.ai/code">Claude Code</a> &nbsp;·&nbsp;
+    <a href="https://github.com/jeffev/ai-dev-kit">GitHub</a> &nbsp;·&nbsp;
     MIT License
   </p>
 </footer>

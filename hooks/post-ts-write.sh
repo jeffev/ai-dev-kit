@@ -33,21 +33,20 @@ find_tsconfig() {
 TSCONFIG=$(find_tsconfig)
 [[ -z "$TSCONFIG" ]] && exit 0
 
-# tsc must be available
+# npx must be available
 if ! command -v npx &>/dev/null; then
   exit 0
 fi
 
 echo ""
-echo "[post-write] Verificando tipos após edição em $(basename "$FILE_PATH")..."
+echo "[post-write] Type checking after edit: $(basename "$FILE_PATH")..."
 
 OUTPUT=$(npx tsc --noEmit -p "$TSCONFIG" 2>&1) && STATUS=0 || STATUS=$?
 
 if [[ $STATUS -eq 0 ]]; then
-  echo "[post-write] ✔ Tipos OK"
+  echo "[post-write] ✔ Types OK"
 else
-  echo "[post-write] ✘ Erros de tipo:"
-  # Show only errors related to the file just written (top 15 lines)
+  echo "[post-write] ✘ Type errors:"
   BASENAME=$(basename "$FILE_PATH")
   RELEVANT=$(echo "$OUTPUT" | grep "$BASENAME" | head -15)
   if [[ -n "$RELEVANT" ]]; then
@@ -56,5 +55,5 @@ else
     echo "$OUTPUT" | head -20
   fi
   echo ""
-  echo "[post-write] Corrija os erros de tipo antes de continuar."
+  echo "[post-write] Fix the type errors above before continuing."
 fi

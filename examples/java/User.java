@@ -1,14 +1,11 @@
 package com.example.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-// ❌ PROBLEMA J-005: @Entity sem equals/hashCode adequado
-// @Data gera equals/hashCode baseado em TODOS os campos — problemático com JPA
-// Correto: @EqualsAndHashCode(onlyExplicitlyIncluded = true) + @EqualsAndHashCode.Include no @Id
+// ❌ ISSUE J-005: @Entity missing proper equals/hashCode
+// @Data generates equals/hashCode based on ALL fields — problematic with JPA lazy loading
+// Correct: @EqualsAndHashCode(onlyExplicitlyIncluded = true) + @EqualsAndHashCode.Include on @Id
 @Entity
 @Table(name = "users")
 @Data

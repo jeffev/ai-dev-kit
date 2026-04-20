@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stack detection library — sourced by auditor.sh and ai-kit.sh
-# Populates STACK_* variables; uses cache file to avoid re-running on every hook call.
+# Populates STACK_* variables; uses a cache file to avoid re-running on every hook call.
 
 CACHE_FILE=".claude/hooks/.stack-cache"
 CACHE_TTL=600  # 10 minutes
@@ -8,7 +8,7 @@ CACHE_TTL=600  # 10 minutes
 detect_stack() {
   local project_root="${1:-.}"
 
-  # Use cache if fresh
+  # Use cache if still fresh
   if [[ -f "$project_root/$CACHE_FILE" ]]; then
     local age=$(( $(date +%s) - $(date -r "$project_root/$CACHE_FILE" +%s 2>/dev/null || echo 0) ))
     if [[ $age -lt $CACHE_TTL ]]; then

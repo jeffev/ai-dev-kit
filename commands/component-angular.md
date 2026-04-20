@@ -6,10 +6,10 @@ Steps:
    - Use standalone: true (no NgModule)
    - Inject services with inject() function, not constructor parameters
    - Use signals (signal(), computed(), effect()) for reactive state
-   - Use the OnPush change detection strategy: changeDetection: ChangeDetectionStrategy.OnPush
+   - Use OnPush change detection: changeDetection: ChangeDetectionStrategy.OnPush
 3. Create the template (.html):
    - Use @if / @for / @switch (Angular 17+ control flow syntax, not *ngIf/*ngFor)
-   - Bind to signals with ()  e.g., {{ mySignal() }}
+   - Bind to signals with () — e.g., {{ mySignal() }}
 4. Create the styles file (.scss) with component-scoped styles only
 5. Create the spec file (.spec.ts):
    - Use TestBed.configureTestingModule with standalone component

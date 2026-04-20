@@ -1,37 +1,37 @@
 import { useState, useEffect } from 'react';
 
-// ❌ PROBLEMA F-002: uso de `any` nos tipos
-// ❌ PROBLEMA F-001: console.log em produção
-// ❌ PROBLEMA U-002: TODO não resolvido
+// ❌ ISSUE F-002: state and error typed as `any`
+// ❌ ISSUE F-001: console.log in production code
+// ❌ ISSUE U-002: unresolved TODO
 
 interface UserCardProps {
   userId: number;
 }
 
-// TODO: adicionar skeleton loading quando dados estiverem carregando
+// TODO: add skeleton loading while data is being fetched
 
 export function UserCard({ userId }: UserCardProps) {
-  // ❌ F-002: estado tipado como `any`
+  // ❌ F-002: state typed as `any`
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<any>(null);
 
   useEffect(() => {
-    console.log('Buscando usuário:', userId);
+    console.log('Fetching user:', userId);
 
     fetch(`/api/users/${userId}`)
       .then(res => res.json())
       .then((data: any) => {
-        console.log('Dados recebidos:', data);
+        console.log('Data received:', data);
         setUser(data);
       })
       .catch((err: any) => {
-        console.log('Erro:', err);
+        console.log('Error:', err);
         setError(err);
       });
   }, [userId]);
 
-  if (error) return <div>Erro ao carregar usuário</div>;
-  if (!user) return <div>Carregando...</div>;
+  if (error) return <div>Failed to load user</div>;
+  if (!user) return <div>Loading...</div>;
 
   return (
     <div className="user-card">

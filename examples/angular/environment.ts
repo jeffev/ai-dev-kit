@@ -1,16 +1,17 @@
-// ❌ PROBLEMA F-004: secrets em arquivo de environment — visível no bundle final
-// ❌ PROBLEMA U-001: apiKey e token hardcoded
+// ❌ ISSUE F-004: secrets in environment file — visible in the final bundle
+// ❌ ISSUE U-001: apiKey and token hardcoded in source code
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:8080',
-  apiKey: 'sk-abc123xyz789-minha-chave-de-api',
+  apiKey: 'sk-abc123xyz789-my-api-key',
   stripeToken: 'pk_live_51NxABCDEFGHIJKLMNOP',
   googleMapsKey: 'AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 };
 
-// ✅ CORRETO: apenas URLs e flags não-sensíveis no environment
+// ✅ CORRECT: only non-sensitive URLs and flags in the environment file
 // export const environment = {
 //   production: false,
 //   apiUrl: 'http://localhost:8080',
 // };
-// Secrets devem vir do backend via endpoint autenticado ou variável de ambiente em build time
+// Secrets should come from the backend via an authenticated endpoint
+// or be injected as build-time environment variables

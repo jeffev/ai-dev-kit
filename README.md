@@ -1,71 +1,71 @@
 # AI Dev Kit
 
-Bootstrap completo de IA para projetos Java/Spring Boot, Angular e React — com auditor de qualidade e segurança em tempo real.
+Full AI bootstrap for Java/Spring Boot, Angular, and React projects — with a real-time quality and security auditor.
 
-## O que é
+## What is it
 
-Um único comando (`ai-kit init`) que configura seu projeto para usar o Claude Code com máxima eficiência:
+A single command (`ai-kit init`) that configures your project for efficient AI-assisted development:
 
-- **Auditor automático** — intercepta toda escrita de arquivo e bloqueia problemas críticos antes de chegar no disco
-- **CLAUDE.md gerado** — contexto real do seu projeto injetado em toda sessão de IA
-- **Hooks prontos** — compile check, type check, lembrete de testes, status do Docker
-- **Slash commands** — `/project:endpoint`, `/project:test`, `/project:secure` e mais
-- **Smart Commit** — review de diff + geração de mensagem conventional commit via IA
-- **Regras customizadas** — seu time define as regras em `.aikit-rules.yml`
+- **Real-time auditor** — intercepts every file write and blocks critical issues before they hit disk
+- **Generated CLAUDE.md** — real project context injected into every AI session
+- **Ready-to-use hooks** — compile check, type check, test reminder, Docker status
+- **Slash commands** — `/project:endpoint`, `/project:test`, `/project:secure` and more
+- **Smart Commit** — diff review + Conventional Commit message generation via AI
+- **Custom rules** — define your team's rules in `.aikit-rules.yml`
 
 ---
 
-## Instalação
+## Installation
 
 ```bash
-# Clone o repositório
-git clone https://github.com/seu-usuario/ai-dev-kit.git
+# Clone the repository
+git clone https://github.com/jeffev/ai-dev-kit.git
 
-# Entre na raiz do seu projeto
-cd meu-projeto
+# Navigate to your project root
+cd my-project
 
-# Rode o bootstrapper
-bash /caminho/para/ai-dev-kit/ai-kit.sh init
+# Run the bootstrapper
+bash /path/to/ai-dev-kit/ai-kit.sh init
 ```
 
-> **Requisitos:** Claude Code CLI instalado, bash (Git Bash no Windows), python3, git
+> **Requirements:** Claude Code CLI, bash (Git Bash on Windows), python3, git
 
 ---
 
-## O que o `init` configura
+## What `init` sets up
 
-### Fases
+### Phases
 
-| Fase | O que faz |
-|------|-----------|
-| 0 — Pre-flight | Verifica dependências (claude CLI, git, python3) |
-| 1 — Detecção | Lê `pom.xml`, `package.json`, `angular.json` e detecta o stack |
-| 2 — CLAUDE.md | Gera via `claude -p` com contexto real do projeto |
-| 3 — settings.json | Registra todos os hooks no Claude Code |
-| 4 — Slash Commands | Instala comandos específicos para o stack detectado |
-| 5 — Auditor | Deploy dos scripts de hook em `.claude/hooks/` |
-| 6 — Skills | Recomenda skills do harness relevantes ao projeto |
+| Phase | What it does |
+|-------|-------------|
+| 0 — Pre-flight | Verifies dependencies (claude CLI, git, python3) |
+| 1 — Detection | Reads `pom.xml`, `package.json`, `angular.json` and detects the stack |
+| 2 — CLAUDE.md | Generates via `claude -p` with real project context |
+| 3 — settings.json | Registers all hooks in Claude Code |
+| 4 — Slash Commands | Installs commands specific to the detected stack |
+| 5 — Auditor | Deploys hook scripts to `.claude/hooks/` |
+| 6 — Skills | Recommends relevant harness skills for the project |
 
-### Estrutura gerada no projeto
+### Generated structure
 
 ```
 .claude/
-├── settings.json          # hooks registrados
-├── CLAUDE.md              # contexto do projeto para IA
-├── commands/              # slash commands
-│   ├── review.md          # /project:review
-│   ├── test.md            # /project:test
-│   ├── secure.md          # /project:secure
-│   ├── endpoint.md        # /project:endpoint  (Spring Boot)
-│   ├── dto.md             # /project:dto        (Spring Boot)
-│   ├── migration.md       # /project:migration  (Flyway)
-│   └── component.md       # /project:component  (Angular/React)
+├── settings.json           # registered hooks
+├── CLAUDE.md               # project context for the AI
+├── commands/               # slash commands
+│   ├── review.md           # /project:review
+│   ├── test.md             # /project:test
+│   ├── secure.md           # /project:secure
+│   ├── endpoint.md         # /project:endpoint  (Spring Boot)
+│   ├── dto.md              # /project:dto        (Spring Boot)
+│   ├── migration.md        # /project:migration  (Flyway)
+│   └── component.md        # /project:component  (Angular/React)
 └── hooks/
-    ├── auditor.sh          # PreToolUse — bloqueia problemas críticos
-    ├── post-java-write.sh  # PostToolUse — mvnw compile após .java
-    ├── post-ts-write.sh    # PostToolUse — tsc --noEmit após .ts
-    ├── session-start.sh    # SessionStart — status git + docker
-    ├── stop-test-reminder.sh # Stop — lembra de rodar testes
+    ├── auditor.sh           # PreToolUse — blocks critical issues
+    ├── post-java-write.sh   # PostToolUse — mvnw compile after .java writes
+    ├── post-ts-write.sh     # PostToolUse — tsc --noEmit after .ts writes
+    ├── session-start.sh     # SessionStart — git + docker status
+    ├── stop-test-reminder.sh # Stop — reminds to run tests
     └── lib/
         ├── detect.sh
         ├── java_rules.sh
@@ -74,58 +74,58 @@ bash /caminho/para/ai-dev-kit/ai-kit.sh init
         ├── custom_rules.sh
         └── reporter.sh
 
-smart-commit.sh            # commit inteligente com review de IA
-.aikit-rules.yml           # regras customizadas do time
+smart-commit.sh              # AI-powered smart commit at project root
+.aikit-rules.yml             # team custom rules
 ```
 
 ---
 
-## Auditor de Qualidade e Segurança
+## Quality & Security Auditor
 
-Roda automaticamente em toda escrita de arquivo pelo Claude Code via hook `PreToolUse`.
+Runs automatically on every file write by Claude Code via the `PreToolUse` hook.
 
-### Severidades
+### Severities
 
-| Severidade | Comportamento |
-|------------|---------------|
-| `CRITICAL` | Bloqueia a escrita, mostra o problema e o fix |
-| `HIGH`     | Bloqueia a escrita, mostra o problema e o fix |
-| `MEDIUM`   | Permite a escrita, imprime aviso no terminal |
-| `LOW`      | Permite a escrita, registra silenciosamente em `audit.log` |
+| Severity | Behavior |
+|----------|----------|
+| `CRITICAL` | Blocks the write, shows the issue and fix |
+| `HIGH`     | Blocks the write, shows the issue and fix |
+| `MEDIUM`   | Allows the write, prints a warning |
+| `LOW`      | Allows the write, logs silently to `audit.log` |
 
-### Regras Java / Spring Boot
+### Java / Spring Boot rules
 
-| ID | Severidade | Descrição |
-|----|------------|-----------|
-| J-001 | CRITICAL | SQL Injection por concatenação de string |
-| J-002 | HIGH | `@RestController` sem `@PreAuthorize` em nenhum endpoint |
-| J-003 | MEDIUM | `System.out.println` em código de produção |
-| J-004 | HIGH | `@Transactional` em método privado (sem efeito no Spring) |
-| J-005 | MEDIUM | `@Entity` JPA sem `equals/hashCode` adequado |
-| J-006 | CRITICAL | JWT secret hardcoded |
+| ID | Severity | Description |
+|----|----------|-------------|
+| J-001 | CRITICAL | SQL Injection via string concatenation in queries |
+| J-002 | HIGH | `@RestController` with no `@PreAuthorize` on any endpoint |
+| J-003 | MEDIUM | `System.out.println` in production code |
+| J-004 | HIGH | `@Transactional` on a private method (no effect in Spring AOP) |
+| J-005 | MEDIUM | JPA `@Entity` missing proper `equals/hashCode` |
+| J-006 | CRITICAL | Hardcoded JWT secret |
 
-### Regras Angular / React
+### Angular / React rules
 
-| ID | Severidade | Descrição |
-|----|------------|-----------|
-| F-001 | LOW | `console.log` em código de produção |
+| ID | Severity | Description |
+|----|----------|-------------|
+| F-001 | LOW | `console.log` in production code |
 | F-002 | MEDIUM | TypeScript `any` |
-| F-003 | HIGH | `.subscribe()` sem estratégia de unsubscribe (memory leak) |
-| F-004 | CRITICAL | Secret em arquivo `environment.ts` ou `.env` |
+| F-003 | HIGH | `.subscribe()` without unsubscribe strategy (Angular memory leak) |
+| F-004 | CRITICAL | Secret in `environment.ts` or `.env` file |
 
-### Regras Universais
+### Universal rules
 
-| ID | Severidade | Descrição |
-|----|------------|-----------|
-| U-001 | CRITICAL | Hardcoded password, token, API key |
-| U-002 | LOW | `TODO` / `FIXME` em código novo |
+| ID | Severity | Description |
+|----|----------|-------------|
+| U-001 | CRITICAL | Hardcoded password, token, or API key |
+| U-002 | LOW | `TODO` / `FIXME` in new code |
 
-### Supressão pontual
+### Inline suppression
 
-Para casos intencionais, adicione um comentário no arquivo:
+For intentional exceptions, add a comment to the file:
 
 ```java
-// ai-kit:ignore J-002 — endpoint público por design
+// ai-kit:ignore J-002 — public endpoint by design
 @GetMapping("/health")
 public ResponseEntity<String> health() { ... }
 ```
@@ -135,26 +135,26 @@ public ResponseEntity<String> health() { ... }
 ## Smart Commit
 
 ```bash
-# Após git add:
+# After git add:
 bash smart-commit.sh           # review + commit
 bash smart-commit.sh --push    # review + commit + push
-bash smart-commit.sh --dry-run # só mostra o que faria
+bash smart-commit.sh --dry-run # preview only
 
-# Ou via ai-kit:
+# Or via ai-kit:
 bash ai-kit.sh commit --push
 ```
 
-**Fluxo:**
-1. Lê o `git diff --cached`
-2. Envia para `claude -p` para revisar: secrets, debug logs, SQL injection, endpoints desprotegidos
-3. Se aprovado → gera mensagem no padrão [Conventional Commits](https://www.conventionalcommits.org/)
-4. Pede confirmação → faz o commit (e push se `--push`)
+**Flow:**
+1. Reads `git diff --cached`
+2. Sends to `claude -p` for review: secrets, debug logs, SQL injection, unprotected endpoints
+3. If approved → generates a [Conventional Commits](https://www.conventionalcommits.org/) message
+4. Asks for confirmation → commits (and pushes if `--push`)
 
 ---
 
-## Regras Customizadas
+## Custom Rules
 
-Edite o `.aikit-rules.yml` gerado na raiz do projeto:
+Edit the generated `.aikit-rules.yml` at the project root:
 
 ```yaml
 rules:
@@ -162,51 +162,51 @@ rules:
     severity: HIGH
     files: "*.java"
     pattern: 'System\.exit\('
-    message: "System.exit() não deve ser usado. Lance uma exceção adequada."
+    message: "System.exit() must not be used. Throw a proper exception instead."
 
   - id: C-002
     severity: MEDIUM
     files: "*.tsx,*.ts"
     pattern: '^\s*fetch\s*\('
-    message: "Use o hook useApi() em vez de fetch() direto em componentes."
+    message: "Use the useApi() hook instead of calling fetch() directly."
 ```
 
-As regras são aplicadas automaticamente pelo auditor em toda escrita de arquivo.
+Rules are applied automatically by the auditor on every file write.
 
 ---
 
-## Hooks configurados
+## Configured hooks
 
-| Hook | Script | Quando dispara |
-|------|--------|----------------|
-| `PreToolUse` | `auditor.sh` | Antes de escrever qualquer arquivo |
-| `PostToolUse` | `post-java-write.sh` | Após escrever `.java` → `mvnw compile` |
-| `PostToolUse` | `post-ts-write.sh` | Após escrever `.ts/.tsx` → `tsc --noEmit` |
-| `SessionStart` | `session-start.sh` | Ao abrir o Claude Code — mostra status git + docker |
-| `Stop` | `stop-test-reminder.sh` | Ao fechar sessão — lembra de rodar testes |
+| Hook | Script | When it fires |
+|------|--------|---------------|
+| `PreToolUse` | `auditor.sh` | Before writing any file |
+| `PostToolUse` | `post-java-write.sh` | After writing `.java` → runs `mvnw compile` |
+| `PostToolUse` | `post-ts-write.sh` | After writing `.ts/.tsx` → runs `tsc --noEmit` |
+| `SessionStart` | `session-start.sh` | On Claude Code open — shows git + docker status |
+| `Stop` | `stop-test-reminder.sh` | On session close — reminds to run tests |
 
 ---
 
-## Comandos disponíveis
+## Available commands
 
 ```bash
-bash ai-kit.sh init              # configura o projeto
+bash ai-kit.sh init              # bootstrap the project
 bash ai-kit.sh commit            # smart commit
 bash ai-kit.sh commit --push     # smart commit + push
-bash ai-kit.sh audit-test <file> # testa o auditor em um arquivo
+bash ai-kit.sh audit-test <file> # test the auditor against a file
 ```
 
 ---
 
-## Stack suportado
+## Supported stack
 
 - **Backend:** Java 17+, Spring Boot 3.x/4.x, Spring Security, Lombok, MapStruct, JPA, Flyway, PostgreSQL
 - **Frontend:** Angular 17+ (standalone), React 18/19, TypeScript, Vite
 - **Infra:** Docker Compose, Maven Wrapper
-- **SO:** Linux, macOS, Windows (Git Bash)
+- **OS:** Linux, macOS, Windows (Git Bash)
 
 ---
 
-## Licença
+## License
 
 MIT

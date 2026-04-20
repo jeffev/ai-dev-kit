@@ -16,4 +16,4 @@ Rules:
 - Never modify existing migration files — always create a new version
 - Never use database-specific syntax without a comment noting the DB requirement
 - Always wrap multiple statements in a transaction when the DB supports it
-- Test the migration locally with: ./mvnw flyway:migrate -Dflyway.url=... before committing
+- Test the migration locally with: ./mvnw flyway:migrate before committing

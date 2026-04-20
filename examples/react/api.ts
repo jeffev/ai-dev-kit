@@ -1,14 +1,14 @@
-// ❌ PROBLEMA U-001: múltiplos secrets hardcoded
-// ❌ PROBLEMA F-001: console.log em produção
+// ❌ ISSUE U-001: multiple hardcoded secrets
+// ❌ ISSUE F-001: console.log in production code
 
 const API_BASE = 'https://api.example.com';
 
-// ❌ nunca faça isso — secrets no código fonte são expostos no bundle e no git
+// ❌ Never do this — secrets in source code are exposed in the bundle and in git history
 const API_KEY = 'sk-prod-xxxxxxxxxxxxxxxxxxxxxxxxxxx';
 const SECRET_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.secret.token';
 
 export async function getUsers() {
-  console.log('Chamando API de usuários');
+  console.log('Calling users API');
 
   const response = await fetch(`${API_BASE}/users`, {
     headers: {
@@ -18,14 +18,14 @@ export async function getUsers() {
   });
 
   if (!response.ok) {
-    console.log('Erro na resposta:', response.status);
-    throw new Error('Falha ao buscar usuários');
+    console.log('Response error:', response.status);
+    throw new Error('Failed to fetch users');
   }
 
   return response.json();
 }
 
-// ✅ CORRETO: secrets via variáveis de ambiente (injetadas em build time pelo Vite)
+// ✅ CORRECT: secrets via environment variables (injected at build time by Vite)
 // const API_KEY = import.meta.env.VITE_API_KEY;
 // const SECRET_TOKEN = import.meta.env.VITE_SECRET_TOKEN;
-// Adicionar ao .env.local (nunca commitar esse arquivo)
+// Add to .env.local — never commit that file

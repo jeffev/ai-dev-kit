@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # AI Dev Kit — Smart Commit
-# Usage: bash .claude/hooks/smart-commit.sh [--push] [--dry-run]
-# Reviews staged diff via claude -p, generates conventional commit message, commits and pushes.
+# Usage: bash smart-commit.sh [--push] [--dry-run]
+# Reviews staged diff via claude -p, generates a Conventional Commit message, commits and optionally pushes.
 
 set -euo pipefail
 
@@ -35,110 +35,109 @@ echo "────────────────────────�
 if ! git diff --cached --quiet 2>/dev/null; then
   DIFF=$(git diff --cached)
 else
-  fail "Nada em stage. Rode: git add <arquivos>"
+  fail "Nothing staged. Run: git add <files>"
   exit 1
 fi
 
 STAGED_FILES=$(git diff --cached --name-only)
 FILE_COUNT=$(echo "$STAGED_FILES" | wc -l | tr -d ' ')
-info "$FILE_COUNT arquivo(s) em stage:"
+info "$FILE_COUNT staged file(s):"
 echo "$STAGED_FILES" | sed 's/^/       /'
 echo ""
 
 # ── Review via claude -p ──────────────────────────────────────────────────────
-info "Revisando alterações..."
+info "Reviewing changes..."
 
 REVIEW=$(echo "$DIFF" | claude -p "$(cat <<'PROMPT'
-Você é um code reviewer experiente. Analise este git diff e verifique APENAS:
+You are an experienced code reviewer. Analyze this git diff and check ONLY for:
 
-1. Segredos ou tokens hardcoded (passwords, API keys, JWT secrets)
-2. console.log / System.out.println esquecidos em código de produção
-3. Endpoints Spring Boot sem @PreAuthorize
-4. SQL com concatenação de strings (risco de SQL Injection)
-5. Código comentado em bloco que deveria ser deletado
-6. Arquivos que claramente não deveriam ser commitados (.env, *.log, target/, node_modules/)
+1. Hardcoded secrets or tokens (passwords, API keys, JWT secrets)
+2. Forgotten console.log / System.out.println in production code
+3. Spring Boot endpoints without @PreAuthorize
+4. SQL with string concatenation (SQL Injection risk)
+5. Large commented-out code blocks that should be deleted
+6. Files that clearly should not be committed (.env, *.log, target/, node_modules/)
 
-Responda com EXATAMENTE um dos dois formatos:
+Reply with EXACTLY one of two formats:
 
-Se tudo OK:
-APROVADO
+If everything is OK:
+APPROVED
 
-Se encontrou problemas:
-REPROVADO
-- [CRÍTICO/ALTO/MÉDIO] Descrição do problema (arquivo:linha se possível)
+If issues found:
+REJECTED
+- [CRITICAL/HIGH/MEDIUM] Description of the issue (file:line if possible)
 - ...
 PROMPT
 )")
 
 echo ""
 
-if echo "$REVIEW" | grep -q "^APROVADO"; then
-  ok "Review aprovado"
+if echo "$REVIEW" | grep -q "^APPROVED"; then
+  ok "Review approved"
 else
-  echo -e "  ${C_RED}Review reprovado:${C_RESET}"
-  echo "$REVIEW" | grep -v "^REPROVADO" | sed 's/^/  /'
+  echo -e "  ${C_RED}Review rejected:${C_RESET}"
+  echo "$REVIEW" | grep -v "^REJECTED" | sed 's/^/  /'
   echo ""
 
-  # Perguntar se quer forçar mesmo assim
-  echo -n "  Commitar mesmo assim? [s/N] "
+  echo -n "  Commit anyway? [y/N] "
   read -r answer
-  if [[ "$answer" != "s" && "$answer" != "S" ]]; then
-    fail "Commit cancelado."
+  if [[ "$answer" != "y" && "$answer" != "Y" ]]; then
+    fail "Commit cancelled."
     exit 1
   fi
-  warn "Commitando com ressalvas..."
+  warn "Committing with warnings..."
 fi
 
-# ── Gerar mensagem de commit ──────────────────────────────────────────────────
-info "Gerando mensagem de commit..."
+# ── Generate commit message ───────────────────────────────────────────────────
+info "Generating commit message..."
 
 COMMIT_MSG=$(echo "$DIFF" | claude -p "$(cat <<'PROMPT'
-Gere uma mensagem de commit seguindo o padrão Conventional Commits.
+Generate a commit message following the Conventional Commits specification.
 
-Formato obrigatório:
-<type>(<scope>): <descrição curta em português>
+Required format:
+<type>(<scope>): <short description>
 
-[corpo opcional — só inclua se houver múltiplas mudanças relevantes, máx 3 linhas]
+[optional body — only include if there are multiple relevant changes, max 3 lines]
 
-Types permitidos: feat, fix, refactor, test, chore, docs, style, perf, ci
-- scope: nome do módulo/componente afetado (ex: user, auth, payment)
-- descrição: imperativo, minúsculo, sem ponto final, máx 72 chars
+Allowed types: feat, fix, refactor, test, chore, docs, style, perf, ci
+- scope: name of the affected module/component (e.g. user, auth, payment)
+- description: imperative mood, lowercase, no trailing period, max 72 chars
 
-Responda APENAS com a mensagem de commit. Nenhum texto adicional.
+Reply with ONLY the commit message. No additional text.
 PROMPT
 )")
 
 echo ""
-echo -e "  ${C_BOLD}Mensagem gerada:${C_RESET}"
+echo -e "  ${C_BOLD}Generated message:${C_RESET}"
 echo "  $COMMIT_MSG"
 echo ""
 
 if [[ "$DRY_RUN" == true ]]; then
-  warn "Modo dry-run — nenhum commit foi feito."
+  warn "Dry-run mode — no commit was made."
   exit 0
 fi
 
-# ── Confirmar e commitar ──────────────────────────────────────────────────────
-echo -n "  Confirmar commit? [S/n] "
+# ── Confirm and commit ────────────────────────────────────────────────────────
+echo -n "  Confirm commit? [Y/n] "
 read -r confirm
 if [[ "$confirm" == "n" || "$confirm" == "N" ]]; then
-  fail "Commit cancelado."
+  fail "Commit cancelled."
   exit 1
 fi
 
 git commit -m "$COMMIT_MSG"
-ok "Commit criado: $COMMIT_MSG"
+ok "Commit created: $COMMIT_MSG"
 
-# ── Push opcional ─────────────────────────────────────────────────────────────
+# ── Optional push ─────────────────────────────────────────────────────────────
 if [[ "$DO_PUSH" == true ]]; then
-  info "Fazendo push..."
+  info "Pushing..."
   BRANCH=$(git rev-parse --abbrev-ref HEAD)
   git push origin "$BRANCH"
-  ok "Push concluído → $BRANCH"
+  ok "Push complete → $BRANCH"
 else
   echo ""
-  echo "  Para fazer push: git push"
-  echo "  Ou use --push na próxima vez: bash smart-commit.sh --push"
+  echo "  To push: git push"
+  echo "  Or use --push next time: bash smart-commit.sh --push"
 fi
 
 echo ""

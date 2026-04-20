@@ -17,32 +17,31 @@ TS_COUNT=$(echo "$MODIFIED" | grep -cE '\.(ts|tsx)$' || echo 0)
 
 echo ""
 echo "┌─────────────────────────────────────────┐"
-echo "│            Lembrete de Testes            │"
+echo "│              Test Reminder               │"
 echo "└─────────────────────────────────────────┘"
 
 if [[ "$JAVA_COUNT" -gt 0 ]]; then
   echo ""
-  echo "  $JAVA_COUNT arquivo(s) Java modificado(s) nesta sessão."
+  echo "  $JAVA_COUNT Java file(s) modified this session."
   echo ""
-  echo "  Rodar testes:"
+  echo "  Run tests:"
 
   if [[ -f "./mvnw" ]]; then
-    # Try to infer relevant test class names from modified files
     SUGGESTIONS=$(echo "$MODIFIED" | grep '\.java$' | while read -r f; do
       BASE=$(basename "$f" .java)
-      echo "    ./mvnw test -Dtest=${Base}Test"
+      echo "    ./mvnw test -Dtest=${BASE}Test"
     done | head -3)
 
-    echo "    ./mvnw test                     # todos os testes"
+    echo "    ./mvnw test                     # all tests"
     [[ -n "$SUGGESTIONS" ]] && echo "$SUGGESTIONS"
   fi
 fi
 
 if [[ "$TS_COUNT" -gt 0 ]]; then
   echo ""
-  echo "  $TS_COUNT arquivo(s) TypeScript modificado(s) nesta sessão."
+  echo "  $TS_COUNT TypeScript file(s) modified this session."
   echo ""
-  echo "  Rodar testes:"
+  echo "  Run tests:"
 
   if [[ -f "angular.json" ]]; then
     echo "    ng test --watch=false           # Angular"
