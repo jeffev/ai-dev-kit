@@ -14,7 +14,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
-    // ✅ CORRECT: named parameter with @Query
+    // [CORRECT]: named parameter with @Query
     @Query("SELECT u FROM User u WHERE u.email = :email AND u.active = true")
     Optional<User> findActiveByEmail(String email);
 }
@@ -28,13 +28,13 @@ class UserSearchService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    // ❌ ISSUE J-001: SQL Injection — user input concatenated directly into query
+    // [ISSUE] J-001: SQL Injection — user input concatenated directly into query
     public List<User> searchByName(String name) {
         String query = "SELECT * FROM users WHERE name = '" + name + "'";
         return jdbcTemplate.query(query, (rs, row) -> new User());
     }
 
-    // ✅ CORRECT: PreparedStatement with parameter binding
+    // [CORRECT]: PreparedStatement with parameter binding
     public List<User> searchByNameSafe(String name) {
         return jdbcTemplate.query(
             "SELECT * FROM users WHERE name = ?",

@@ -3,7 +3,7 @@ package com.example.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-// ❌ ISSUE J-005: @Entity missing proper equals/hashCode
+// [ISSUE] J-005: @Entity missing proper equals/hashCode
 // @Data generates equals/hashCode based on ALL fields — problematic with JPA lazy loading
 // Correct: @EqualsAndHashCode(onlyExplicitlyIncluded = true) + @EqualsAndHashCode.Include on @Id
 @Entity

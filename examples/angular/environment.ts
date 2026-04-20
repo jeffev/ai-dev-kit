@@ -1,5 +1,5 @@
-// ❌ ISSUE F-004: secrets in environment file — visible in the final bundle
-// ❌ ISSUE U-001: apiKey and token hardcoded in source code
+// [ISSUE] F-004: secrets in environment file — visible in the final bundle
+// [ISSUE] U-001: apiKey and token hardcoded in source code
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:8080',
@@ -8,7 +8,7 @@ export const environment = {
   googleMapsKey: 'AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 };
 
-// ✅ CORRECT: only non-sensitive URLs and flags in the environment file
+// [CORRECT]: only non-sensitive URLs and flags in the environment file
 // export const environment = {
 //   production: false,
 //   apiUrl: 'http://localhost:8080',

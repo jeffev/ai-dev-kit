@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 
-// ❌ ISSUE F-002: state and error typed as `any`
-// ❌ ISSUE F-001: console.log in production code
-// ❌ ISSUE U-002: unresolved TODO
+// [ISSUE] F-002: state and error typed as `any`
+// [ISSUE] F-001: console.log in production code
+// [ISSUE] U-002: unresolved TODO
 
 interface UserCardProps {
   userId: number;
@@ -11,7 +11,7 @@ interface UserCardProps {
 // TODO: add skeleton loading while data is being fetched
 
 export function UserCard({ userId }: UserCardProps) {
-  // ❌ F-002: state typed as `any`
+  // [ISSUE] F-002: state typed as `any`
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<any>(null);
 

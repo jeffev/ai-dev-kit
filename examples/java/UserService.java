@@ -16,7 +16,7 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    // ❌ ISSUE J-003: System.out.println instead of a logger
+    // [ISSUE] J-003: System.out.println instead of a logger
     public List<UserResponse> findAll() {
         System.out.println("Fetching all users");
         return userRepository.findAll()
@@ -44,7 +44,7 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    // ❌ ISSUE J-004: @Transactional on a private method has no effect in Spring AOP
+    // [ISSUE] J-004: @Transactional on a private method has no effect in Spring AOP
     @Transactional
     private UserResponse toResponse(User user) {
         return UserResponse.builder()
