@@ -292,7 +292,6 @@
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-badge">⚡ Powered by Claude Code</div>
   <h1>AI in your project.<br /><em>Done right.</em></h1>
   <p>Full bootstrap in one command. Real-time security auditor, automatic hooks, smart commit and slash commands for Spring Boot, Angular and React.</p>
   <div class="hero-actions">
@@ -411,26 +410,148 @@
         <div class="terminal-wrap" style="margin-top: 0;">
           <div class="terminal-bar">
             <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
-            <div class="terminal-title">Auditor blocking write</div>
+            <div class="terminal-title">Auditor — examples</div>
           </div>
-          <div class="terminal-body">
+          <!-- tab buttons inside terminal bar area -->
+          <div style="background: var(--bg3); border-bottom: 1px solid var(--border); padding: .4rem 1rem; display: flex; gap: .4rem; flex-wrap: wrap;">
+            <button class="aud-tab-btn active" onclick="showAudTab('java',this)" style="background:rgba(88,166,255,.15);border:1px solid var(--accent);color:var(--accent);padding:.25rem .75rem;border-radius:4px;font-size:.75rem;cursor:pointer;font-family:inherit;transition:all .2s;">Java</button>
+            <button class="aud-tab-btn" onclick="showAudTab('frontend',this)" style="background:var(--bg2);border:1px solid var(--border);color:var(--muted);padding:.25rem .75rem;border-radius:4px;font-size:.75rem;cursor:pointer;font-family:inherit;transition:all .2s;">Frontend</button>
+            <button class="aud-tab-btn" onclick="showAudTab('universal',this)" style="background:var(--bg2);border:1px solid var(--border);color:var(--muted);padding:.25rem .75rem;border-radius:4px;font-size:.75rem;cursor:pointer;font-family:inherit;transition:all .2s;">Universal</button>
+            <button class="aud-tab-btn" onclick="showAudTab('custom',this)" style="background:var(--bg2);border:1px solid var(--border);color:var(--muted);padding:.25rem .75rem;border-radius:4px;font-size:.75rem;cursor:pointer;font-family:inherit;transition:all .2s;">Custom</button>
+          </div>
+
+          <!-- Java -->
+          <div id="aud-java" class="aud-panel" style="display:block;">
+          <div class="terminal-body" style="min-height:220px;">
             <div><span class="t-err">[AUDITOR] CRITICAL — Rule J-001 (Write blocked)</span></div>
             <div><span class="t-muted">File:    src/.../UserRepository.java:42</span></div>
-            <div><span class="t-muted">Fix:     SQL Injection risk: input concatenated</span></div>
-            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;in SQL string. Use @Query with</div>
-            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;named parameters or PreparedStatement.</div>
+            <div><span class="t-muted">Fix:     SQL Injection risk: user input concatenated</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;in SQL string. Use @Query with named</div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;parameters or PreparedStatement.</div>
+            <div><span class="t-err">Write blocked. Fix the issue and try again.</span></div>
             <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-warn">[AUDITOR] HIGH — Rule J-002 (Write blocked)</span></div>
+            <div><span class="t-muted">File:    src/.../PaymentController.java:12</span></div>
+            <div><span class="t-muted">Fix:     @RestController with no @PreAuthorize</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;on any endpoint. Add @PreAuthorize or</div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;// ai-kit:ignore J-002 if public by design.</div>
             <div><span class="t-err">Write blocked. Fix the issue and try again.</span></div>
             <div>&nbsp;</div>
             <div><span class="t-dim">──────────────────────────────────────</span></div>
             <div>&nbsp;</div>
             <div><span class="t-warn">[AUDITOR] MEDIUM — Rule J-003</span></div>
             <div><span class="t-muted">File:    src/.../OrderService.java:78</span></div>
-            <div><span class="t-muted">Fix:     System.out.println detected.</span></div>
-            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Use: log.info("Order: {}", orderId);</div>
+            <div><span class="t-muted">Fix:     System.out.println detected. Use SLF4J:</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;log.info("Order processed: {}", orderId);</div>
+            <div><span class="t-ok">File written. Resolve before merging.</span></div>
             <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-warn">[AUDITOR] MEDIUM — Rule J-007</span></div>
+            <div><span class="t-muted">File:    src/.../NotificationService.java:55</span></div>
+            <div><span class="t-muted">Fix:     Generic catch(Exception) swallows all</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;errors. Catch specific exceptions or</div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;re-throw as a domain exception.</div>
             <div><span class="t-ok">File written. Resolve before merging.</span></div>
           </div>
+          </div>
+
+          <!-- Frontend -->
+          <div id="aud-frontend" class="aud-panel" style="display:none;">
+          <div class="terminal-body" style="min-height:220px;">
+            <div><span class="t-err">[AUDITOR] CRITICAL — Rule F-004 (Write blocked)</span></div>
+            <div><span class="t-muted">File:    src/environments/environment.ts:5</span></div>
+            <div><span class="t-muted">Fix:     Secret in frontend environment file.</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Frontend bundles are public — use</div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;server-side proxying or runtime config.</div>
+            <div><span class="t-err">Write blocked. Fix the issue and try again.</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-warn">[AUDITOR] HIGH — Rule F-003 (Write blocked)</span></div>
+            <div><span class="t-muted">File:    src/app/user-list.component.ts:34</span></div>
+            <div><span class="t-muted">Fix:     .subscribe() without takeUntilDestroyed</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;or unsubscribe — Angular memory leak.</div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Use takeUntilDestroyed() from @angular/core.</div>
+            <div><span class="t-err">Write blocked. Fix the issue and try again.</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-warn">[AUDITOR] HIGH — Rule F-006 (Write blocked)</span></div>
+            <div><span class="t-muted">File:    src/app/modal.component.ts:21</span></div>
+            <div><span class="t-muted">Fix:     Direct DOM manipulation in Angular.</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Use @ViewChild with ElementRef or</div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;the Renderer2 service instead.</div>
+            <div><span class="t-err">Write blocked. Fix the issue and try again.</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-warn">[AUDITOR] MEDIUM — Rule F-002</span></div>
+            <div><span class="t-muted">File:    src/app/api.service.ts:18</span></div>
+            <div><span class="t-muted">Fix:     TypeScript `any` type detected. Define</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;a proper interface or use `unknown`.</div>
+            <div><span class="t-ok">File written. Resolve before merging.</span></div>
+          </div>
+          </div>
+
+          <!-- Universal -->
+          <div id="aud-universal" class="aud-panel" style="display:none;">
+          <div class="terminal-body" style="min-height:220px;">
+            <div><span class="t-err">[AUDITOR] CRITICAL — Rule U-001 (Write blocked)</span></div>
+            <div><span class="t-muted">File:    src/main/resources/application.yml:14</span></div>
+            <div><span class="t-muted">Fix:     Possible hardcoded secret detected.</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Move to environment variables or a</div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;secrets manager (Vault, AWS Secrets Manager).</div>
+            <div><span class="t-err">Write blocked. Fix the issue and try again.</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-warn">[AUDITOR] CRITICAL — Rule J-006 (Write blocked)</span></div>
+            <div><span class="t-muted">File:    src/.../JwtConfig.java:9</span></div>
+            <div><span class="t-muted">Fix:     Hardcoded JWT secret detected. Move to</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;application.yml and inject with</div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;@Value("${jwt.secret}").</div>
+            <div><span class="t-err">Write blocked. Fix the issue and try again.</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-muted t-dim">[AUDITOR] LOW — Rule U-002 (logged silently)</span></div>
+            <div><span class="t-muted">File:    src/.../CartService.java:101</span></div>
+            <div><span class="t-muted">Fix:     TODO/FIXME found. Resolve before merging</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;or track in your issue tracker.</div>
+            <div><span class="t-ok">File written. (LOW logged to audit.log)</span></div>
+          </div>
+          </div>
+
+          <!-- Custom -->
+          <div id="aud-custom" class="aud-panel" style="display:none;">
+          <div class="terminal-body" style="min-height:220px;">
+            <div><span class="t-muted">Rule from .aikit-rules.yml:</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-err">[AUDITOR] HIGH — Rule C-001 (Write blocked)</span></div>
+            <div><span class="t-muted">File:    src/.../BatchProcessor.java:67</span></div>
+            <div><span class="t-muted">Fix:     System.exit() must not be used.</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Throw a proper exception instead.</div>
+            <div><span class="t-err">Write blocked. Fix the issue and try again.</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-warn">[AUDITOR] MEDIUM — Rule C-002</span></div>
+            <div><span class="t-muted">File:    src/app/products.component.ts:44</span></div>
+            <div><span class="t-muted">Fix:     Use the useApi() hook instead of</span></div>
+            <div>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;calling fetch() directly.</div>
+            <div><span class="t-ok">File written. Resolve before merging.</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-muted">To suppress globally: add C-001 to .aikit-ignore</span></div>
+            <div><span class="t-muted">To suppress inline:</span></div>
+            <div>&nbsp; <span class="t-dim">// ai-kit:ignore C-001 — controlled shutdown</span></div>
+          </div>
+          </div>
+
         </div>
 
         <div class="terminal-wrap" style="margin-top: 1rem;">
@@ -645,6 +766,19 @@ ai-kit audit-test src/main/java/MyClass.java</pre></div>
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     event.target.classList.add('active');
+  }
+
+  function showAudTab(name, btn) {
+    document.querySelectorAll('.aud-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.aud-tab-btn').forEach(b => {
+      b.style.background = 'var(--bg2)';
+      b.style.borderColor = 'var(--border)';
+      b.style.color = 'var(--muted)';
+    });
+    document.getElementById('aud-' + name).style.display = 'block';
+    btn.style.background = 'rgba(88,166,255,.15)';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
   }
 </script>
 
