@@ -40,7 +40,7 @@ _frontend_typescript_any() {
   local content_file="$2"
 
   local match
-  match=$(grep -inP '(?<!\/\/.*):\s*any\b|as\s+any\b' "$content_file" 2>/dev/null | grep -v '^\s*//' | head -1)
+  match=$(grep -inP ':\s*any\b|as\s+any\b' "$content_file" 2>/dev/null | grep -v '^\s*//' | head -1)
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
