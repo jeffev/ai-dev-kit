@@ -70,8 +70,19 @@ _check_emoji() {
   local content_file="$2"
 
   local match
-  # Match common emoji Unicode ranges (emoticons, symbols, transport, misc)
-  match=$(grep -inP '[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{1F900}-\x{1F9FF}\x{1FA00}-\x{1FAFF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]' "$content_file" 2>/dev/null | head -1)
+  # Match emoji via Python (locale-safe — LC_ALL=C breaks Unicode grep -P ranges)
+  local py="${PYTHON_CMD:-python3}"
+  if command -v "$py" &>/dev/null; then
+    match=$(LC_ALL=en_US.UTF-8 "$py" -c "
+import sys, re
+pattern = re.compile(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F900-\U0001F9FF\U0001FA00-\U0001FAFF\U00002600-\U000026FF\U00002700-\U000027BF]')
+with open(sys.argv[1], errors='replace') as f:
+    for i, line in enumerate(f, 1):
+        if pattern.search(line):
+            print(str(i) + '\t' + line.rstrip())
+            break
+" "$content_file" 2>/dev/null | head -1)
+  fi
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
