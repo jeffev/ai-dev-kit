@@ -416,7 +416,7 @@ main() {
       local content
       content=$(cat "$file")
       echo "{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$file\",\"content\":$(echo "$content" | "${PYTHON_CMD:-python3}" -c 'import sys,json; print(json.dumps(sys.stdin.read()))')}}" \
-        | bash .claude/hooks/auditor.sh
+        | AIKIT_AUDIT_TEST=true bash .claude/hooks/auditor.sh
       ;;
 
     commit)

@@ -96,7 +96,14 @@ case "$(basename "$FILE_PATH")" in
 esac
 
 # ── Detect stack ──────────────────────────────────────────────────────────────
-detect_stack "$PROJECT_ROOT"
+if [[ "${AIKIT_AUDIT_TEST:-false}" == true ]]; then
+  # In test mode, infer stack from file extension so all applicable rules run
+  STACK_JAVA=false; STACK_ANGULAR=false; STACK_REACT=false; STACK_TYPESCRIPT=false
+  echo "$FILE_PATH" | grep -qiE '\.java$'          && STACK_JAVA=true       || true
+  echo "$FILE_PATH" | grep -qiE '\.(ts|tsx|js|jsx)$' && { STACK_ANGULAR=true; STACK_REACT=true; STACK_TYPESCRIPT=true; } || true
+else
+  detect_stack "$PROJECT_ROOT"
+fi
 
 # ── Run applicable rule sets ──────────────────────────────────────────────────
 
