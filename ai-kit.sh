@@ -74,23 +74,23 @@ phase1_detect() {
   source "$AIKIT_DIR/hooks/lib/detect.sh"
   detect_stack "."
 
-  [[ "$STACK_JAVA" == true ]]           && ok "Java${STACK_SPRING_BOOT_VERSION:+ + Spring Boot $STACK_SPRING_BOOT_VERSION}  (pom.xml)"
-  [[ "$STACK_SPRING_SECURITY" == true ]] && ok "Spring Security"
-  [[ "$STACK_LOMBOK" == true ]]          && ok "Lombok"
-  [[ "$STACK_MAPSTRUCT" == true ]]       && ok "MapStruct"
-  [[ "$STACK_JPA" == true ]]             && ok "JPA / Hibernate"
-  [[ "$STACK_JUNIT5" == true ]]          && ok "JUnit 5 + Mockito"
-  [[ "$STACK_FLYWAY" == true ]]          && ok "Flyway migrations"
-  [[ "$STACK_ANGULAR" == true ]]         && ok "Angular"
-  [[ "$STACK_REACT" == true ]]           && ok "React"
-  [[ "$STACK_TYPESCRIPT" == true ]]      && ok "TypeScript"
-  [[ "$STACK_VITE" == true ]]            && ok "Vite"
-  [[ "$STACK_POSTGRESQL" == true ]]      && ok "PostgreSQL"
-  [[ "$STACK_KAFKA" == true ]]           && ok "Kafka"
-  [[ "$STACK_REDIS" == true ]]           && ok "Redis"
-  [[ "$STACK_KEYCLOAK" == true ]]        && ok "Keycloak"
-  [[ "$STACK_DOCKER_COMPOSE" == true ]]  && ok "Docker Compose"
-  [[ "$STACK_MULTIMODULE" == true ]]     && ok "Multi-module Maven (${STACK_MODULE_LIST})"
+  [[ "$STACK_JAVA" == true ]]           && ok "Java${STACK_SPRING_BOOT_VERSION:+ + Spring Boot $STACK_SPRING_BOOT_VERSION}  (pom.xml)" || true
+  [[ "$STACK_SPRING_SECURITY" == true ]] && ok "Spring Security"   || true
+  [[ "$STACK_LOMBOK" == true ]]          && ok "Lombok"            || true
+  [[ "$STACK_MAPSTRUCT" == true ]]       && ok "MapStruct"         || true
+  [[ "$STACK_JPA" == true ]]             && ok "JPA / Hibernate"   || true
+  [[ "$STACK_JUNIT5" == true ]]          && ok "JUnit 5 + Mockito" || true
+  [[ "$STACK_FLYWAY" == true ]]          && ok "Flyway migrations"  || true
+  [[ "$STACK_ANGULAR" == true ]]         && ok "Angular"           || true
+  [[ "$STACK_REACT" == true ]]           && ok "React"             || true
+  [[ "$STACK_TYPESCRIPT" == true ]]      && ok "TypeScript"        || true
+  [[ "$STACK_VITE" == true ]]            && ok "Vite"              || true
+  [[ "$STACK_POSTGRESQL" == true ]]      && ok "PostgreSQL"        || true
+  [[ "$STACK_KAFKA" == true ]]           && ok "Kafka"             || true
+  [[ "$STACK_REDIS" == true ]]           && ok "Redis"             || true
+  [[ "$STACK_KEYCLOAK" == true ]]        && ok "Keycloak"          || true
+  [[ "$STACK_DOCKER_COMPOSE" == true ]]  && ok "Docker Compose"    || true
+  [[ "$STACK_MULTIMODULE" == true ]]     && ok "Multi-module Maven (${STACK_MODULE_LIST})" || true
 }
 
 # ── Phase 2: CLAUDE.md ────────────────────────────────────────────────────────
@@ -100,7 +100,10 @@ phase2_claude_md() {
   if [[ -f "CLAUDE.md" ]]; then
     echo -n "  CLAUDE.md already exists. Regenerate? [y/N] "
     read -r answer
-    [[ "$answer" != "y" && "$answer" != "Y" ]] && info "Skipped CLAUDE.md generation" && return
+    if [[ "$answer" != "y" && "$answer" != "Y" ]]; then
+      info "Skipped CLAUDE.md generation"
+      return 0
+    fi
   fi
 
   local tree
@@ -108,10 +111,10 @@ phase2_claude_md() {
     -not -path '*/.claude/*' -maxdepth 4 | sort | head -80 | sed 's|^\./||')
 
   local pom_snippet=""
-  [[ -f "pom.xml" ]] && pom_snippet=$(head -60 pom.xml)
+  if [[ -f "pom.xml" ]]; then pom_snippet=$(head -60 pom.xml); fi
 
   local pkg_snippet=""
-  [[ -f "package.json" ]] && pkg_snippet=$(cat package.json)
+  if [[ -f "package.json" ]]; then pkg_snippet=$(cat package.json); fi
 
   info "Calling claude -p to generate CLAUDE.md..."
 
@@ -176,15 +179,15 @@ phase3_settings() {
   mkdir -p .claude
 
   local existing="{}"
-  [[ -f ".claude/settings.json" ]] && existing=$(cat .claude/settings.json)
+  if [[ -f ".claude/settings.json" ]]; then existing=$(cat .claude/settings.json); fi
 
   # Build permissions allow list based on stack
   local allow_list='"Bash(git *)"'
-  [[ "$STACK_JAVA" == true ]]          && allow_list="$allow_list, \"Bash(./mvnw *)\", \"Bash(mvn *)\""
-  [[ "$STACK_ANGULAR" == true ]]       && allow_list="$allow_list, \"Bash(ng *)\", \"Bash(npm *)\""
-  [[ "$STACK_REACT" == true ]]         && allow_list="$allow_list, \"Bash(npm *)\", \"Bash(npx *)\""
-  [[ "$STACK_VITE" == true ]]          && allow_list="$allow_list, \"Bash(npx vite *)\""
-  [[ "$STACK_DOCKER_COMPOSE" == true ]] && allow_list="$allow_list, \"Bash(docker compose *)\""
+  if [[ "$STACK_JAVA" == true ]];          then allow_list="$allow_list, \"Bash(./mvnw *)\", \"Bash(mvn *)\""; fi
+  if [[ "$STACK_ANGULAR" == true ]];       then allow_list="$allow_list, \"Bash(ng *)\", \"Bash(npm *)\""; fi
+  if [[ "$STACK_REACT" == true ]];         then allow_list="$allow_list, \"Bash(npm *)\", \"Bash(npx *)\""; fi
+  if [[ "$STACK_VITE" == true ]];          then allow_list="$allow_list, \"Bash(npx vite *)\""; fi
+  if [[ "$STACK_DOCKER_COMPOSE" == true ]]; then allow_list="$allow_list, \"Bash(docker compose *)\""; fi
 
   ("${PYTHON_CMD:-python3}" - "$existing" "$allow_list" <<'PYEOF'
 import sys, json
@@ -241,14 +244,14 @@ phase4_commands() {
   _install_command "test"
   _install_command "secure"
 
-  [[ "$STACK_JAVA" == true ]] && {
+  if [[ "$STACK_JAVA" == true ]]; then
     _install_command "endpoint"
     _install_command "dto"
-    [[ "$STACK_FLYWAY" == true ]] && _install_command "migration"
-  }
+    if [[ "$STACK_FLYWAY" == true ]]; then _install_command "migration"; fi
+  fi
 
-  [[ "$STACK_ANGULAR" == true ]] && _install_command "component-angular"
-  [[ "$STACK_REACT" == true ]]   && _install_command "component-react"
+  if [[ "$STACK_ANGULAR" == true ]]; then _install_command "component-angular"; fi
+  if [[ "$STACK_REACT" == true ]];   then _install_command "component-react";   fi
 
   # Always install generic commands
   _install_command "refactor"
@@ -289,6 +292,7 @@ phase5_auditor() {
   cp "$hook_src/lib/frontend_rules.sh"   .claude/hooks/lib/frontend_rules.sh
   cp "$hook_src/lib/universal_rules.sh"  .claude/hooks/lib/universal_rules.sh
   cp "$hook_src/lib/custom_rules.sh"     .claude/hooks/lib/custom_rules.sh
+  cp "$hook_src/lib/python_cmd.sh"       .claude/hooks/lib/python_cmd.sh
   cp "$hook_src/lib/reporter.sh"         .claude/hooks/lib/reporter.sh
 
   chmod +x .claude/hooks/*.sh
@@ -377,7 +381,7 @@ phase6_skills() {
     has_rec=true
   fi
 
-  [[ "$has_rec" == false ]] && info "No specific skill recommendations for this stack."
+  if [[ "$has_rec" == false ]]; then info "No specific skill recommendations for this stack."; fi
 }
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
