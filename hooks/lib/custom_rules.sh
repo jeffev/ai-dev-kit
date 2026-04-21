@@ -99,7 +99,7 @@ PYEOF
     [[ "$applies" == false ]] && continue
 
     local match
-    match=$(grep -inP "$pattern" "$content_file" 2>/dev/null | head -1)
+    match=$(grep -inP "$pattern" "$content_file" 2>/dev/null | head -1) || true
     if [[ -n "$match" ]]; then
       local line_num
       line_num=$(echo "$match" | grep -oP '^\d+')

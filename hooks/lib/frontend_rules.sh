@@ -27,7 +27,7 @@ _frontend_console_log() {
   local content_file="$2"
 
   local match
-  match=$(grep -inP 'console\.(log|warn|error|debug)\s*\(' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -inP 'console\.(log|warn|error|debug)\s*\(' "$content_file" 2>/dev/null | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
@@ -40,7 +40,7 @@ _frontend_typescript_any() {
   local content_file="$2"
 
   local match
-  match=$(grep -inP ':\s*any\b|as\s+any\b' "$content_file" 2>/dev/null | grep -v '^\s*//' | head -1)
+  match=$(grep -inP ':\s*any\b|as\s+any\b' "$content_file" 2>/dev/null | grep -v '^\s*//' | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
@@ -74,7 +74,7 @@ _frontend_env_secrets() {
   echo "$file_path" | grep -qiE '(environment\.(ts|js|prod|staging)|\.env(\.|$)|config\.(ts|js))' || return
 
   local match
-  match=$(grep -inP '(apiKey|api_key|secret|password|token|privateKey)\s*[=:]\s*["'"'"'][^"'"'"'$\{]{4,}["'"'"']' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -inP '(apiKey|api_key|secret|password|token|privateKey)\s*[=:]\s*["'"'"'][^"'"'"'$\{]{4,}["'"'"']' "$content_file" 2>/dev/null | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
@@ -101,7 +101,7 @@ _frontend_useeffect_missing_deps() {
       echo "$line"
       break
     fi
-  done | head -1)
+  done | head -1) || true
 
   if [[ -n "$match" ]]; then
     local line_num
@@ -119,7 +119,7 @@ _frontend_hardcoded_route() {
   grep -qiP '@Component|@Injectable' "$content_file" 2>/dev/null || return
 
   local match
-  match=$(grep -inP 'this\.router\.navigate\s*\(\s*\[[\s'"'"'"]\/' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -inP 'this\.router\.navigate\s*\(\s*\[[\s'"'"'"]\/' "$content_file" 2>/dev/null | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
@@ -136,7 +136,7 @@ _frontend_direct_dom() {
   grep -qiP '@Component|@Directive' "$content_file" 2>/dev/null || return
 
   local match
-  match=$(grep -inP 'document\.(getElementById|querySelector|querySelectorAll|getElementsBy)\s*\(' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -inP 'document\.(getElementById|querySelector|querySelectorAll|getElementsBy)\s*\(' "$content_file" 2>/dev/null | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')

@@ -42,7 +42,7 @@ _check_hardcoded_secrets() {
 
   for pattern in "${patterns[@]}"; do
     local match
-    match=$(grep -inP "$pattern" "$content_file" 2>/dev/null | head -1)
+    match=$(grep -inP "$pattern" "$content_file" 2>/dev/null | head -1) || true
     if [[ -n "$match" ]]; then
       local line_num
       line_num=$(echo "$match" | grep -oP '^\d+')
@@ -57,7 +57,7 @@ _check_todo_fixme() {
   local content_file="$2"
 
   local match
-  match=$(grep -inP '\b(TODO|FIXME)\b' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -inP '\b(TODO|FIXME)\b' "$content_file" 2>/dev/null | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
@@ -81,7 +81,7 @@ with open(sys.argv[1], errors='replace') as f:
         if pattern.search(line):
             print(str(i) + '\t' + line.rstrip())
             break
-" "$content_file" 2>/dev/null | head -1)
+" "$content_file" 2>/dev/null | head -1) || true
   fi
   if [[ -n "$match" ]]; then
     local line_num

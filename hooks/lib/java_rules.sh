@@ -29,9 +29,9 @@ _java_sql_injection() {
   local content_file="$2"
 
   local match
-  match=$(grep -inP '(createNativeQuery|createQuery|executeQuery)\s*\(\s*"[^"]*"\s*\+' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -inP '(createNativeQuery|createQuery|executeQuery)\s*\(\s*"[^"]*"\s*\+' "$content_file" 2>/dev/null | head -1) || true
   if [[ -z "$match" ]]; then
-    match=$(grep -inP '"(SELECT|INSERT|UPDATE|DELETE|WHERE)[^"]*"\s*\+' "$content_file" 2>/dev/null | head -1)
+    match=$(grep -inP '"(SELECT|INSERT|UPDATE|DELETE|WHERE)[^"]*"\s*\+' "$content_file" 2>/dev/null | head -1) || true
   fi
 
   if [[ -n "$match" ]]; then
@@ -66,7 +66,7 @@ _java_system_out_println() {
   local content_file="$2"
 
   local match
-  match=$(grep -inP 'System\.(out|err)\.print' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -inP 'System\.(out|err)\.print' "$content_file" 2>/dev/null | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
@@ -89,7 +89,7 @@ _java_transactional_private() {
       echo "$line"
       break
     fi
-  done | head -1)
+  done | head -1) || true
 
   if [[ -n "$match" ]]; then
     local line_num
@@ -119,7 +119,7 @@ _java_hardcoded_jwt_secret() {
   local content_file="$2"
 
   local match
-  match=$(grep -inP '(jwt[_-]?secret|jwtSecret|secret[_-]?key)\s*[=:]\s*["'"'"'][^"'"'"'$\{]{8,}["'"'"']' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -inP '(jwt[_-]?secret|jwtSecret|secret[_-]?key)\s*[=:]\s*["'"'"'][^"'"'"'$\{]{8,}["'"'"']' "$content_file" 2>/dev/null | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
@@ -132,7 +132,7 @@ _java_generic_catch() {
   local content_file="$2"
 
   local match
-  match=$(grep -inP '}\s*catch\s*\(\s*(Exception|Throwable)\s+\w+\s*\)\s*\{' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -inP '}\s*catch\s*\(\s*(Exception|Throwable)\s+\w+\s*\)\s*\{' "$content_file" 2>/dev/null | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
@@ -148,7 +148,7 @@ _java_scheduled_without_async() {
   grep -q "@Async\|@EnableAsync" "$content_file" 2>/dev/null && return
 
   local match
-  match=$(grep -nP '@Scheduled' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -nP '@Scheduled' "$content_file" 2>/dev/null | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
@@ -162,7 +162,7 @@ _java_value_secret_injection() {
 
   # Detect @Value injecting a secret directly into a String field (not @ConfigurationProperties)
   local match
-  match=$(grep -inP '@Value\s*\(\s*"\$\{(secret|password|token|api[._-]?key|jwt)[^}]*\}"\s*\)' "$content_file" 2>/dev/null | head -1)
+  match=$(grep -inP '@Value\s*\(\s*"\$\{(secret|password|token|api[._-]?key|jwt)[^}]*\}"\s*\)' "$content_file" 2>/dev/null | head -1) || true
   if [[ -n "$match" ]]; then
     local line_num
     line_num=$(echo "$match" | grep -oP '^\d+')
