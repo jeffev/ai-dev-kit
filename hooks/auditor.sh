@@ -5,7 +5,7 @@
 # exit 0 = allow write  |  exit 1 = block write
 
 set -euo pipefail
-export LC_ALL=C  # ensure grep -P works on Windows/Git Bash regardless of system locale
+export LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8  # grep -P requires a UTF-8 locale on Windows/Git Bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
