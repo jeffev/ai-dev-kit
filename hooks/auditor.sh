@@ -34,7 +34,7 @@ extract_json_field() {
   if command -v jq &>/dev/null; then
     echo "$json" | jq -r ".$field // empty" 2>/dev/null
   else
-    echo "$json" | grep -oP "(?<=\"$field\":\s*\")[^\"]*" | head -1
+    echo "$json" | grep -oP "\"$field\":\s*\"\K[^\"]*" | head -1
   fi
 }
 

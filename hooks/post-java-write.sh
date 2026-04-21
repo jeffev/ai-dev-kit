@@ -11,7 +11,7 @@ SESSION_FILE=".claude/hooks/.session-state"
 if command -v jq &>/dev/null; then
   FILE_PATH=$(echo "$STDIN_DATA" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 else
-  FILE_PATH=$(echo "$STDIN_DATA" | grep -oP '(?<="file_path":\s*")[^"]+' | head -1)
+  FILE_PATH=$(echo "$STDIN_DATA" | grep -oP '"file_path":\s*"\K[^"]+' | head -1)
 fi
 
 FILE_PATH=$(echo "$FILE_PATH" | sed 's|\\|/|g')
