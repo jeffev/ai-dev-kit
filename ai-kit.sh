@@ -8,6 +8,14 @@ set -euo pipefail
 AIKIT_VERSION="1.0.0"
 AIKIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Detect working Python 3 — on Windows/Git Bash, python3 may be a Store stub
+_detect_python() {
+  if python3 -c "import sys; sys.exit(0)" 2>/dev/null; then echo "python3"
+  elif python -c "import sys; sys.exit(0)" 2>/dev/null; then echo "python"
+  else echo ""; fi
+}
+PYTHON_CMD="$(_detect_python)"
+
 # ── Colours ───────────────────────────────────────────────────────────────────
 C_RESET='\033[0m'
 C_GREEN='\033[0;32m'
@@ -46,10 +54,10 @@ phase0_preflight() {
     ok "bash $(bash --version | head -1 | grep -oP '\d+\.\d+')"
   fi
 
-  if command -v python3 &>/dev/null; then
-    ok "python3 found (used for JSON parsing in auditor)"
+  if [[ -n "$PYTHON_CMD" ]]; then
+    ok "$PYTHON_CMD found (used for JSON parsing in auditor)"
   else
-    warn "python3 not found — auditor will use grep fallback for JSON parsing"
+    warn "python3/python not found — auditor will use grep fallback for JSON parsing"
   fi
 
   if [[ $errors -gt 0 ]]; then
@@ -178,7 +186,7 @@ phase3_settings() {
   [[ "$STACK_VITE" == true ]]          && allow_list="$allow_list, \"Bash(npx vite *)\""
   [[ "$STACK_DOCKER_COMPOSE" == true ]] && allow_list="$allow_list, \"Bash(docker compose *)\""
 
-  python3 - "$existing" "$allow_list" <<'PYEOF'
+  ("${PYTHON_CMD:-python3}" - "$existing" "$allow_list" <<'PYEOF'
 import sys, json
 
 existing = json.loads(sys.argv[1]) if sys.argv[1] != '{}' else {}
@@ -403,7 +411,7 @@ main() {
       [[ -z "$file" ]] && echo "Usage: ai-kit.sh audit-test <file>" && exit 1
       local content
       content=$(cat "$file")
-      echo "{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$file\",\"content\":$(echo "$content" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')}}" \
+      echo "{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$file\",\"content\":$(echo "$content" | "${PYTHON_CMD:-python3}" -c 'import sys,json; print(json.dumps(sys.stdin.read()))')}}" \
         | bash .claude/hooks/auditor.sh
       ;;
 
@@ -509,7 +517,7 @@ _cmd_doctor() {
   echo "  Dependencies"
   command -v claude   &>/dev/null && ok "claude CLI"    || { fail "claude CLI not found";  errors=$((errors+1)); }
   command -v git      &>/dev/null && ok "git"           || { fail "git not found";          errors=$((errors+1)); }
-  command -v python3  &>/dev/null && ok "python3"       || { warn "python3 not found (auditor will use grep fallback)"; warnings=$((warnings+1)); }
+  [[ -n "$PYTHON_CMD" ]] && ok "$PYTHON_CMD" || { warn "python3/python not found (auditor will use grep fallback)"; warnings=$((warnings+1)); }
   command -v jq       &>/dev/null && ok "jq"            || warn "jq not found (grep fallback active)"
 
   # Check hook files
@@ -568,9 +576,9 @@ _cmd_doctor() {
   echo ""
   echo "  .aikit-rules.yml"
   if [[ -f ".aikit-rules.yml" ]]; then
-    if command -v python3 &>/dev/null; then
+    if [[ -n "$PYTHON_CMD" ]]; then
       local validate_result
-      validate_result=$(python3 - ".aikit-rules.yml" <<'PYEOF' 2>&1
+      validate_result=$("${PYTHON_CMD:-python3}" - ".aikit-rules.yml" <<'PYEOF' 2>&1
 import sys, re
 rules_file = sys.argv[1]
 errors = []
@@ -629,7 +637,7 @@ PYEOF
         done
       fi
     else
-      warn "python3 not found — skipping .aikit-rules.yml validation"
+      warn "python3/python not found — skipping .aikit-rules.yml validation"
     fi
   else
     warn ".aikit-rules.yml not found (optional — skipping)"
@@ -832,7 +840,7 @@ if [[ -f ".claude/hooks/auditor.sh" ]]; then
     [[ -f "$staged_file" ]] || continue
     CONTENT=$(git show ":$staged_file" 2>/dev/null) || continue
     INPUT=$(printf '{"tool_name":"Write","tool_input":{"file_path":"%s","content":%s}}' \
-      "$staged_file" "$(echo "$CONTENT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo '""')")
+      "$staged_file" "$(echo "$CONTENT" | "${PYTHON_CMD:-python3}" -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo '""')")
     if ! echo "$INPUT" | bash .claude/hooks/auditor.sh; then
       BLOCKED=$((BLOCKED + 1))
     fi

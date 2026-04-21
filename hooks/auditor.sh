@@ -10,6 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LOG_FILE="$PROJECT_ROOT/.claude/hooks/logs/audit.log"
 
+source "$SCRIPT_DIR/lib/python_cmd.sh"
 source "$SCRIPT_DIR/lib/detect.sh"
 source "$SCRIPT_DIR/lib/universal_rules.sh"
 source "$SCRIPT_DIR/lib/java_rules.sh"
@@ -39,7 +40,7 @@ extract_json_field() {
 
 TOOL_NAME=$(extract_json_field "$STDIN_DATA" "tool_name")
 FILE_PATH=$(extract_json_field "$(echo "$STDIN_DATA" | grep -oP '"tool_input"\s*:\s*\{[^}]+')" "file_path")
-CONTENT=$(echo "$STDIN_DATA" | python3 -c "
+CONTENT=$(echo "$STDIN_DATA" | ${PYTHON_CMD:-python3} -c "
 import sys, json
 data = json.load(sys.stdin)
 inp = data.get('tool_input', {})

@@ -3,6 +3,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/python_cmd.sh"
+
 SESSION_FILE=".claude/hooks/.session-state"
 
 # Clear session state from previous session
@@ -76,7 +79,7 @@ fi
 # Istanbul / NYC (JavaScript/TypeScript)
 ISTANBUL_JSON="coverage/coverage-summary.json"
 if [[ -f "$ISTANBUL_JSON" ]]; then
-  LINES_PCT=$(python3 -c "import json,sys; d=json.load(open('$ISTANBUL_JSON')); t=d.get('total',{}); l=t.get('lines',{}); print(l.get('pct','?'))" 2>/dev/null || echo "?")
+  LINES_PCT=$(${PYTHON_CMD:-python3} -c "import json,sys; d=json.load(open('$ISTANBUL_JSON')); t=d.get('total',{}); l=t.get('lines',{}); print(l.get('pct','?'))" 2>/dev/null || echo "?")
   echo ""
   echo "  Last Test Run"
   echo "  └─ Istanbul line coverage: ${LINES_PCT}%"

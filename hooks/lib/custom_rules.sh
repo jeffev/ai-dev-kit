@@ -10,12 +10,11 @@ run_custom_rules() {
 
   [[ -f "$rules_file" ]] || return 0
 
-  if ! command -v python3 &>/dev/null; then
-    return 0
-  fi
+  local py="${PYTHON_CMD:-python3}"
+  command -v "$py" &>/dev/null || return 0
 
   local rules_json
-  rules_json=$(python3 - "$rules_file" <<'PYEOF'
+  rules_json=$("$py" - "$rules_file" <<'PYEOF'
 import sys, json
 
 rules_file = sys.argv[1]
@@ -69,11 +68,11 @@ PYEOF
   file_basename=$(basename "$file_path")
 
   local rule_count
-  rule_count=$(echo "$rules_json" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
+  rule_count=$(echo "$rules_json" | "$py" -c "import sys,json; print(len(json.load(sys.stdin)))")
 
   for i in $(seq 0 $((rule_count - 1))); do
     local rule
-    rule=$(echo "$rules_json" | python3 -c "import sys,json; r=json.load(sys.stdin)[$i]; print(r.get('id','?')+'|'+r.get('severity','MEDIUM')+'|'+r.get('files','*')+'|'+r.get('pattern','')+'|'+r.get('message','Custom rule violation')+'|'+r.get('fix',''))")
+    rule=$(echo "$rules_json" | "$py" -c "import sys,json; r=json.load(sys.stdin)[$i]; print(r.get('id','?')+'|'+r.get('severity','MEDIUM')+'|'+r.get('files','*')+'|'+r.get('pattern','')+'|'+r.get('message','Custom rule violation')+'|'+r.get('fix',''))")
 
     local rule_id severity files_glob pattern message fix
     rule_id=$(echo "$rule"    | cut -d'|' -f1)
