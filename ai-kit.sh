@@ -612,6 +612,7 @@ main() {
         new)     _cmd_spec_new     "${@:3}" ;;
         approve) _cmd_spec_approve "${3:-}" ;;
         start)   _cmd_spec_start   "${3:-}" ;;
+        review)  _cmd_spec_review  "${3:-}" ;;
         close)   _cmd_spec_close   "${3:-}" ;;
         list)    _cmd_spec_list ;;
         show)    _cmd_spec_show    "${3:-}" ;;
@@ -622,6 +623,7 @@ main() {
           echo "  new [description]  Create a new spec file"
           echo "  approve <id>       Validate and approve a spec"
           echo "  start <id>         Activate spec, generate TASK.md"
+          echo "  review [id]        Review implementation coverage against spec"
           echo "  close [id]         Close active spec, link commits, archive"
           echo "  list               List all specs"
           echo "  show <id>          Print a spec"
@@ -645,7 +647,8 @@ main() {
       echo "  spec new [description] Create a spec for a task"
       echo "  spec approve <id>      Approve a spec for implementation"
       echo "  spec start <id>        Activate spec and generate TASK.md"
-      echo "  spec close [id]        Archive the active spec with commit links"
+      echo "  spec review [id]       Review implementation coverage against spec"
+      echo "  spec close [id]        Review + archive the active spec with commit links"
       echo "  spec list              List all specs"
       echo "  spec show <id>         Print a spec"
       ;;
@@ -1343,8 +1346,9 @@ with open(path, 'w') as f:
     f.write(content)
 PYEOF
 
-  # Write active spec pointer
+  # Write active spec pointer + start commit hash
   echo "$id" > "$active_spec_file"
+  git rev-parse HEAD 2>/dev/null > "$SPEC_DIR/.spec-start-commit" || true
 
   # Generate TASK.md
   local title
@@ -1405,6 +1409,111 @@ TASKMD
   echo ""
 }
 
+# ── Command: spec review ─────────────────────────────────────────────────────
+_cmd_spec_review() {
+  local id="${1:-}"
+
+  # Resolve ID from active spec if not provided
+  if [[ -z "$id" ]]; then
+    if [[ -f "$SPEC_DIR/.active-spec" ]]; then
+      id=$(cat "$SPEC_DIR/.active-spec")
+    else
+      fail "No active spec. Provide an ID: ai-kit spec review <id>"
+      exit 1
+    fi
+  fi
+
+  header "spec review" "Reviewing $id"
+
+  local file
+  file=$(_spec_find_file "$id")
+  if [[ -z "$file" ]]; then
+    fail "Spec $id not found."
+    exit 1
+  fi
+
+  # Get git diff since spec was started
+  local diff=""
+  local start_commit=""
+  if [[ -f "$SPEC_DIR/.spec-start-commit" ]]; then
+    start_commit=$(cat "$SPEC_DIR/.spec-start-commit")
+  fi
+
+  if git rev-parse --git-dir &>/dev/null 2>&1; then
+    if [[ -n "$start_commit" ]]; then
+      diff=$(git diff "${start_commit}..HEAD" --stat 2>/dev/null || true)
+      local full_diff
+      full_diff=$(git diff "${start_commit}..HEAD" -- '*.java' '*.ts' '*.tsx' '*.js' '*.py' 2>/dev/null | head -400 || true)
+      [[ -n "$full_diff" ]] && diff="$diff
+
+$full_diff"
+    else
+      diff=$(git diff HEAD~1..HEAD 2>/dev/null | head -400 || true)
+    fi
+  fi
+
+  local spec_content
+  spec_content=$(cat "$file")
+
+  if [[ -z "$diff" ]]; then
+    warn "No git diff found since spec start — review will be based on spec alone."
+    diff="(no git diff available)"
+  fi
+
+  info "Calling claude -p to review implementation..."
+
+  local review_output
+  review_output=$(claude -p "$(cat <<PROMPT
+You are a senior engineer doing a spec compliance review.
+
+## Spec
+$spec_content
+
+## Git diff since spec was activated
+$diff
+
+## Your task
+Review whether the implementation covers the spec. Be concise and direct.
+
+Respond in this exact format:
+
+### Coverage
+For each item in ## Scope, mark it as:
+- ✅ DONE — [item] — [brief evidence from diff]
+- ⚠️ PARTIAL — [item] — [what's missing]
+- ❌ MISSING — [item] — [not found in diff]
+
+### Out-of-scope changes
+List any files changed that are NOT in ## Files expected to change.
+If none, write: (none detected)
+
+### Verdict
+One of: READY TO CLOSE | NEEDS WORK | CANNOT ASSESS (no diff)
+
+### Issues (if any)
+- [specific thing missing or wrong]
+
+Keep each line short. No filler text.
+PROMPT
+)" 2>/dev/null || echo "")
+
+  if [[ -z "$review_output" ]]; then
+    fail "claude -p returned empty output."
+    exit 1
+  fi
+
+  echo ""
+  echo "$review_output"
+  echo ""
+
+  # Return exit code based on verdict so spec close can gate on it
+  if echo "$review_output" | grep -q "READY TO CLOSE"; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 # ── Command: spec close ───────────────────────────────────────────────────────
 _cmd_spec_close() {
   local id="${1:-}"
@@ -1427,6 +1536,19 @@ _cmd_spec_close() {
   if [[ -z "$file" ]]; then
     fail "Spec $id not found."
     exit 1
+  fi
+
+  # Run review as gate before closing
+  echo ""
+  if ! _cmd_spec_review "$id"; then
+    echo ""
+    warn "Review found issues or incomplete scope."
+    echo -n "  Close anyway? [y/N] "
+    read -r answer
+    [[ "$answer" != "y" && "$answer" != "Y" ]] && exit 0
+  else
+    echo ""
+    ok "Review passed — proceeding to close."
   fi
 
   # Collect commits since start marker (use TASK.md creation time as proxy)
@@ -1479,8 +1601,8 @@ PYEOF
     ok "CLAUDE.md @TASK.md import removed"
   fi
 
-  # Clear active spec pointer
-  rm -f "$active_spec_file"
+  # Clear active spec pointer and start commit
+  rm -f "$active_spec_file" "$SPEC_DIR/.spec-start-commit"
 
   echo ""
   ok  "$id closed"
