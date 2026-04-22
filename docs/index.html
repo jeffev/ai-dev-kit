@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Dev Kit — AI Bootstrap for Java &amp; Frontend Developers</title>
-  <meta name="description" content="Configure your project for AI-assisted development. Real-time security auditor, automatic hooks, desktop notifications, smart commit, slash commands and audit reports for Spring Boot, Angular and React." />
+  <meta name="description" content="Configure your project for AI-assisted development. Real-time security auditor, spec-driven workflow, sectioned context files, smart commit, slash commands and audit reports for Spring Boot, Angular and React." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -323,6 +323,7 @@
     <a href="#features">Features</a>
     <a href="#how-it-works">How it works</a>
     <a href="#workflow">Workflow</a>
+    <a href="#spec">Spec-driven</a>
     <a href="#rules">Rules</a>
     <a href="#installation">Installation</a>
   </div>
@@ -357,8 +358,11 @@
       <div>&nbsp; <span class="t-ok">OK</span>  Angular 19 (standalone)</div>
       <div>&nbsp; <span class="t-ok">OK</span>  PostgreSQL + Docker Compose</div>
       <div>&nbsp;</div>
-      <div><span class="t-muted">[Phase 2]</span> Generating CLAUDE.md</div>
-      <div>&nbsp; <span class="t-ok">OK</span>  CLAUDE.md written (847 bytes)</div>
+      <div><span class="t-muted">[Phase 2]</span> Generating context files</div>
+      <div>&nbsp; <span class="t-ok">OK</span>  stack.md (312 bytes)</div>
+      <div>&nbsp; <span class="t-ok">OK</span>  architecture.md (541 bytes)</div>
+      <div>&nbsp; <span class="t-ok">OK</span>  rules.md (398 bytes)</div>
+      <div>&nbsp; <span class="t-ok">OK</span>  CLAUDE.md → thin index (@imports)</div>
       <div>&nbsp;</div>
       <div><span class="t-muted">[Phase 5]</span> Installing Auditor</div>
       <div>&nbsp; <span class="t-ok">OK</span>  auditor.sh, post-java-write.sh installed</div>
@@ -386,8 +390,13 @@
       </div>
       <div class="feature-card">
         <div class="feature-icon">📄</div>
-        <h3>Generated CLAUDE.md</h3>
-        <p>Reads <code>pom.xml</code>, <code>package.json</code> and project structure. Generates precise, project-specific context — not generic boilerplate.</p>
+        <h3>Sectioned context files</h3>
+        <p>Generates <code>stack.md</code>, <code>architecture.md</code> and <code>rules.md</code> in <code>.claude/context/</code>. CLAUDE.md becomes a thin index — Claude loads only what's relevant, saving tokens every session.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗂️</div>
+        <h3>Spec-driven workflow</h3>
+        <p><code>ai-kit spec new</code> drafts a structured task spec. <code>spec start</code> generates a focused <code>TASK.md</code> — so Claude knows exactly what to build and what to ignore.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">⚡</div>
@@ -439,7 +448,7 @@
       <div class="steps">
         <div class="step"><div class="step-num">0</div><div><h3>Pre-flight</h3><p>Verifies claude CLI, git and python3.</p></div></div>
         <div class="step"><div class="step-num">1</div><div><h3>Stack detection</h3><p>Reads pom.xml, package.json, angular.json. Detects 20+ project characteristics.</p></div></div>
-        <div class="step"><div class="step-num">2</div><div><h3>Generate CLAUDE.md</h3><p>Uses <code>claude -p</code> to generate real context — architecture, conventions, test commands.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div><h3>Generate context files</h3><p>Uses <code>claude -p</code> to generate three focused files: <code>stack.md</code>, <code>architecture.md</code>, <code>rules.md</code>. CLAUDE.md is a thin index that imports them.</p></div></div>
         <div class="step"><div class="step-num">3</div><div><h3>Configure hooks</h3><p>Writes .claude/settings.json with all hooks mapped to the detected stack.</p></div></div>
         <div class="step"><div class="step-num">4</div><div><h3>Install commands</h3><p>Only the commands relevant to your stack — no unnecessary clutter.</p></div></div>
         <div class="step"><div class="step-num">5</div><div><h3>Deploy Auditor</h3><p>Copies hook scripts and runs a self-test to confirm everything is working.</p></div></div>
@@ -730,6 +739,119 @@
   </div>
 </section>
 
+<!-- SPEC-DRIVEN -->
+<section id="spec">
+  <div class="section-inner">
+    <div class="section-label">Spec-driven</div>
+    <h2 class="section-title">Define before you build</h2>
+    <p class="section-desc">A spec is a short markdown file that aligns you and the AI on scope before a single line is written. Less retrabalho, fewer tokens wasted on the wrong thing.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;">
+
+      <!-- Left: flow steps -->
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div>
+            <h3>Create a spec</h3>
+            <p><code>ai-kit spec new "add search endpoint"</code> — Claude drafts the scope, contracts, files to touch and out-of-scope items.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div>
+            <h3>Review &amp; approve</h3>
+            <p>Edit the generated file, then run <code>ai-kit spec approve SPEC-001</code>. Validates that What, Scope, and Files are filled in.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div>
+            <h3>Start the session</h3>
+            <p><code>ai-kit spec start SPEC-001</code> generates a focused <code>TASK.md</code> (&lt;50 lines) at the project root. Claude reads it automatically — no need to re-explain the task.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div>
+            <h3>Implement &amp; close</h3>
+            <p>Work with Claude. When done, <code>ai-kit spec close</code> archives the spec with commit links and removes <code>TASK.md</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: terminal showing spec commands -->
+      <div>
+        <div class="terminal-wrap" style="margin-top:0;">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <div class="terminal-title">ai-kit spec</div>
+          </div>
+          <div class="terminal-body" style="min-height:340px;">
+            <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec new "Add user search endpoint"</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-muted">.... Calling claude -p to draft spec...</span></div>
+            <div><span class="t-ok">  OK</span>  Spec created: .aikit-specs/active/SPEC-001-add-user-search-endpoint.md</div>
+            <div><span class="t-muted">.... Review and edit the spec, then run:</span></div>
+            <div>&nbsp; &nbsp; <span class="t-accent">ai-kit spec approve SPEC-001</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec approve SPEC-001</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-ok">  OK</span>  SPEC-001 approved</div>
+            <div><span class="t-muted">.... Scope: 5 file(s) (1 new), 4 task(s)</span></div>
+            <div><span class="t-muted">.... Run:   ai-kit spec start SPEC-001</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec start SPEC-001</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-ok">  OK</span>  SPEC-001 is now active</div>
+            <div><span class="t-ok">  OK</span>  TASK.md written at project root</div>
+            <div><span class="t-muted">.... Claude Code will read TASK.md automatically</div>
+            <div><span class="t-muted">.... When done: ai-kit spec close SPEC-001</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-dim">──────────────────────────────────────</span></div>
+            <div>&nbsp;</div>
+            <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec list</span></div>
+            <div>&nbsp;</div>
+            <div>&nbsp; Active</div>
+            <div>&nbsp; ├─ <span class="t-accent">SPEC-001</span>  <span class="t-ok">in-progress</span>  SPEC-001 — Add user search endpoint <span class="t-ok">◀ current</span></div>
+            <div>&nbsp;</div>
+            <div>&nbsp; Done (last 5)</div>
+            <div>&nbsp; └─ <span class="t-muted">(none)</span></div>
+          </div>
+        </div>
+
+        <!-- TASK.md preview -->
+        <div class="code-wrap" style="margin-top:1rem;">
+          <div class="code-header">
+            <span class="code-lang">markdown — TASK.md (auto-generated, &lt;50 lines)</span>
+          </div>
+          <div class="code-body"><pre><span class="c">&lt;!-- AUTO-GENERATED by ai-kit spec start --&gt;</span>
+<span class="k"># Current Task: SPEC-001</span>
+
+<span class="k">## Objective</span>
+Add GET /users/search?email= returning paginated UserSummaryDTO.
+
+<span class="k">## Files to touch</span>
+- src/.../UserController.java
+- src/.../UserService.java
+- src/.../UserRepository.java
+- src/.../dto/UserPageDTO.java  <span class="c">← NEW</span>
+- src/test/.../UserControllerTest.java
+
+<span class="k">## Out of scope — do not touch</span>
+- Authentication / security config
+- Database migrations</pre></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <!-- RULES -->
 <section id="rules" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
   <div class="section-inner">
@@ -894,6 +1016,13 @@ bash smart-commit.sh --push</pre></div>
 ai-kit init
 ai-kit update           <span class="c"># update hooks in-place</span>
 ai-kit doctor           <span class="c"># diagnose installation</span>
+
+<span class="c"># Spec-driven workflow</span>
+ai-kit spec new "add payment endpoint"
+ai-kit spec approve SPEC-001
+ai-kit spec start SPEC-001
+ai-kit spec close       <span class="c"># archives spec with commit links</span>
+ai-kit spec list        <span class="c"># show active &amp; done specs</span>
 
 <span class="c"># Daily workflow</span>
 ai-kit commit --push
