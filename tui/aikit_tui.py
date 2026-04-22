@@ -155,8 +155,11 @@ def run_aikit(root: Path, *args: str) -> tuple[int, str, str]:
     else:
         local = root / "ai-kit.sh"
         cmd = [bash, str(local), *args] if local.exists() else ["ai-kit", *args]
-    r = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True)
-    return r.returncode, r.stdout, r.stderr
+    try:
+        r = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True, encoding="utf-8", errors="replace")
+        return r.returncode, r.stdout or "", r.stderr or ""
+    except Exception as e:
+        return 1, "", str(e)
 
 
 # ── List items ────────────────────────────────────────────────────────────────
