@@ -93,22 +93,29 @@ phase1_detect() {
   [[ "$STACK_MULTIMODULE" == true ]]     && ok "Multi-module Maven (${STACK_MODULE_LIST})" || true
 }
 
-# ── Phase 2: CLAUDE.md ────────────────────────────────────────────────────────
+# ── Phase 2: Context files ────────────────────────────────────────────────────
 phase2_claude_md() {
-  header "Phase 2" "Generating CLAUDE.md"
+  header "Phase 2" "Generating context files"
 
-  if [[ -f "CLAUDE.md" ]]; then
-    echo -n "  CLAUDE.md already exists. Regenerate? [y/N] "
+  local ctx_dir=".claude/context"
+  local already_exists=false
+  [[ -f "CLAUDE.md" || -d "$ctx_dir" ]] && already_exists=true
+
+  if [[ "$already_exists" == true ]]; then
+    echo -n "  Context files already exist. Regenerate? [y/N] "
     read -r answer
     if [[ "$answer" != "y" && "$answer" != "Y" ]]; then
-      info "Skipped CLAUDE.md generation"
+      info "Skipped context generation"
       return 0
     fi
   fi
 
+  mkdir -p "$ctx_dir"
+
   local tree
-  tree=$(find . -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/target/*' \
-    -not -path '*/.claude/*' -maxdepth 4 | sort | head -80 | sed 's|^\./||')
+  tree=$(find . -not -path '*/node_modules/*' -not -path '*/.git/*' \
+    -not -path '*/target/*' -not -path '*/.claude/*' -not -path '*/.aikit-specs/*' \
+    -maxdepth 4 | sort | head -80 | sed 's|^\./||')
 
   local pom_snippet=""
   if [[ -f "pom.xml" ]]; then pom_snippet=$(head -60 pom.xml); fi
@@ -116,60 +123,215 @@ phase2_claude_md() {
   local pkg_snippet=""
   if [[ -f "package.json" ]]; then pkg_snippet=$(cat package.json); fi
 
-  info "Calling claude -p to generate CLAUDE.md..."
+  local stack_flags="Java:$STACK_JAVA Spring Boot:$STACK_SPRING_BOOT($STACK_SPRING_BOOT_VERSION) Security:$STACK_SPRING_SECURITY Lombok:$STACK_LOMBOK MapStruct:$STACK_MAPSTRUCT JPA:$STACK_JPA JUnit5:$STACK_JUNIT5 Flyway:$STACK_FLYWAY Angular:$STACK_ANGULAR React:$STACK_REACT TypeScript:$STACK_TYPESCRIPT Vite:$STACK_VITE PostgreSQL:$STACK_POSTGRESQL Kafka:$STACK_KAFKA Redis:$STACK_REDIS Docker:$STACK_DOCKER_COMPOSE Multimodule:$STACK_MULTIMODULE"
 
+  # ── stack.md ─────────────────────────────────────────────────────────────
+  info "Generating .claude/context/stack.md..."
   claude -p "$(cat <<PROMPT
-You are a technical writer. Generate a CLAUDE.md file for a software project based on the detected stack and project structure below. This file will be loaded by Claude Code as context for every AI session in this project.
+You are a technical writer. Generate ONLY the content for a stack.md file (~25 lines max).
 
 ## Detected Stack
-Java: $STACK_JAVA
-Spring Boot: $STACK_SPRING_BOOT (version: $STACK_SPRING_BOOT_VERSION)
-Spring Security: $STACK_SPRING_SECURITY
-Lombok: $STACK_LOMBOK
-MapStruct: $STACK_MAPSTRUCT
-JPA: $STACK_JPA
-JUnit5: $STACK_JUNIT5
-Flyway: $STACK_FLYWAY
-Angular: $STACK_ANGULAR
-React: $STACK_REACT
-TypeScript: $STACK_TYPESCRIPT
-Vite: $STACK_VITE
-PostgreSQL: $STACK_POSTGRESQL
-Docker Compose: $STACK_DOCKER_COMPOSE
-Multi-module: $STACK_MULTIMODULE
-Modules: $STACK_MODULE_LIST
+$stack_flags
 
-## Project Tree
-$tree
-
-## pom.xml (excerpt)
+## pom.xml excerpt
 $pom_snippet
 
 ## package.json
 $pkg_snippet
 
 ## Instructions
-Generate a CLAUDE.md with these sections, in this order:
-1. # Project Overview — 2-3 sentences: what this project does and its main tech stack
-2. ## Stack — bulleted list of key technologies with versions where detected
-3. ## Architecture — annotated folder tree showing each layer's purpose (controller, service, repository, dto, entity, mapper for Java; features/, core/, shared/ for Angular; components/ for React)
-4. ## Running the Project — exact shell commands to start services, run tests, build
-5. ## Non-Negotiable Rules — 6-10 short imperative rules derived from the detected stack. Examples: "Never write getters/setters manually — use Lombok @Data", "Never put business logic in controllers", "Always use constructor injection via @RequiredArgsConstructor"
-6. ## Adding a New Feature — numbered checklist specific to the detected architecture (e.g., for Spring Boot: entity → repository → service → controller → tests)
-7. ## Testing — how to run unit tests, integration tests, and e2e tests with exact commands
+Output ONLY this structure, nothing else:
+# Stack
 
-Rules for writing:
-- Be terse and imperative. No marketing language.
-- Every line must be useful to an AI reading it before writing code.
-- Target 200-350 lines total.
-- Do not add sections not listed above.
-- Do not add comments explaining the CLAUDE.md format itself.
+## Technologies
+- [tech name] [version if known] — [one-line purpose]
+(list every detected technology; skip false ones)
+
+## Key versions
+- [dependency]: [version]
+(only if version is detectable from pom.xml or package.json; omit section if unknown)
+
+## Commands
+- Run: [exact command to start the app]
+- Test: [exact command to run tests]
+- Build: [exact command to build]
+
+Rules: terse, imperative, no marketing. Every line useful to an AI writing code.
 PROMPT
-)" > CLAUDE.md
+)" > "$ctx_dir/stack.md" || true
 
-  local size
-  size=$(wc -c < CLAUDE.md)
-  ok "CLAUDE.md written (${size} bytes)"
+  local stack_size
+  stack_size=$(wc -c < "$ctx_dir/stack.md" 2>/dev/null || echo 0)
+  if [[ "$stack_size" -lt 50 ]]; then
+    # Fallback: write minimal stack.md from detected flags
+    {
+      echo "# Stack"
+      echo ""
+      echo "## Technologies"
+      [[ "$STACK_JAVA" == true ]]          && echo "- Java${STACK_SPRING_BOOT_VERSION:+ + Spring Boot $STACK_SPRING_BOOT_VERSION}"
+      [[ "$STACK_SPRING_SECURITY" == true ]] && echo "- Spring Security"
+      [[ "$STACK_LOMBOK" == true ]]        && echo "- Lombok"
+      [[ "$STACK_MAPSTRUCT" == true ]]     && echo "- MapStruct"
+      [[ "$STACK_JPA" == true ]]           && echo "- JPA / Hibernate"
+      [[ "$STACK_JUNIT5" == true ]]        && echo "- JUnit 5 + Mockito"
+      [[ "$STACK_FLYWAY" == true ]]        && echo "- Flyway"
+      [[ "$STACK_ANGULAR" == true ]]       && echo "- Angular"
+      [[ "$STACK_REACT" == true ]]         && echo "- React"
+      [[ "$STACK_TYPESCRIPT" == true ]]    && echo "- TypeScript"
+      [[ "$STACK_POSTGRESQL" == true ]]    && echo "- PostgreSQL"
+      [[ "$STACK_KAFKA" == true ]]         && echo "- Kafka"
+      [[ "$STACK_REDIS" == true ]]         && echo "- Redis"
+      [[ "$STACK_DOCKER_COMPOSE" == true ]] && echo "- Docker Compose"
+      echo ""
+      echo "## Commands"
+      [[ "$STACK_JAVA" == true ]]    && echo "- Run:   ./mvnw spring-boot:run"
+      [[ "$STACK_JAVA" == true ]]    && echo "- Test:  ./mvnw test"
+      [[ "$STACK_JAVA" == true ]]    && echo "- Build: ./mvnw package -DskipTests"
+      [[ "$STACK_ANGULAR" == true ]] && echo "- Run:   ng serve"
+      [[ "$STACK_ANGULAR" == true ]] && echo "- Test:  ng test"
+      [[ "$STACK_REACT" == true ]]   && echo "- Run:   npm run dev"
+      [[ "$STACK_REACT" == true ]]   && echo "- Test:  npm test"
+      [[ "$STACK_DOCKER_COMPOSE" == true ]] && echo "- Docker: docker compose up -d"
+    } > "$ctx_dir/stack.md"
+  fi
+  ok "stack.md ($(wc -c < "$ctx_dir/stack.md") bytes)"
+
+  # ── architecture.md ───────────────────────────────────────────────────────
+  info "Generating .claude/context/architecture.md..."
+  claude -p "$(cat <<PROMPT
+You are a technical writer. Generate ONLY the content for an architecture.md file (~40 lines max).
+
+## Project tree
+$tree
+
+## Stack
+$stack_flags
+
+## Instructions
+Output ONLY this structure:
+# Architecture
+
+## Folder structure
+[annotated tree of the main source directories]
+Show each folder with a short comment explaining its purpose.
+For Java/Spring: show controller, service, repository, entity, dto, mapper layers.
+For Angular: show features/, core/, shared/ structure.
+For React: show components/, hooks/, pages/ or similar.
+Skip build output folders (target/, dist/, node_modules/).
+Max 30 lines for the tree.
+
+## Layer responsibilities
+- [LayerName]: [one sentence on what belongs here]
+(list all architectural layers: controller, service, repository, dto, entity, etc.)
+
+Rules: terse, imperative, no marketing. Every line useful to an AI writing code.
+PROMPT
+)" > "$ctx_dir/architecture.md" || true
+
+  local arch_size
+  arch_size=$(wc -c < "$ctx_dir/architecture.md" 2>/dev/null || echo 0)
+  if [[ "$arch_size" -lt 50 ]]; then
+    {
+      echo "# Architecture"
+      echo ""
+      echo "## Folder structure"
+      echo "$tree" | head -30 | sed 's/^/  /'
+      echo ""
+      echo "## Layer responsibilities"
+      [[ "$STACK_JAVA" == true ]] && cat <<'LAYERS'
+- controller: HTTP endpoints, request/response mapping only — no business logic
+- service: business logic, transaction boundaries
+- repository: JPA queries, database access only
+- entity: JPA entities — no business logic, no DTOs
+- dto: request/response data classes — no JPA annotations
+- mapper: MapStruct interfaces for entity ↔ DTO conversion
+LAYERS
+    } > "$ctx_dir/architecture.md"
+  fi
+  ok "architecture.md ($(wc -c < "$ctx_dir/architecture.md") bytes)"
+
+  # ── rules.md ──────────────────────────────────────────────────────────────
+  info "Generating .claude/context/rules.md..."
+  claude -p "$(cat <<PROMPT
+You are a senior software engineer. Generate ONLY the content for a rules.md file (~25 lines max).
+
+## Stack
+$stack_flags
+
+## Instructions
+Output ONLY this structure:
+# Non-Negotiable Rules
+
+- [imperative rule — one line each]
+(8-12 rules total, derived from the detected stack)
+
+Examples for Spring Boot:
+- Never write getters/setters manually — use Lombok @Data or @Value
+- Never put business logic in controllers — delegate to @Service
+- Always use constructor injection via @RequiredArgsConstructor
+- Every public endpoint must have @PreAuthorize or explicit permit
+
+Examples for Angular:
+- Never use document.getElementById — use @ViewChild with ElementRef
+- Always unsubscribe with takeUntilDestroyed() or async pipe
+
+Rules for writing: imperative tone, no explanations, no marketing. One rule per line.
+Only include rules relevant to the detected stack.
+PROMPT
+)" > "$ctx_dir/rules.md" || true
+
+  local rules_size
+  rules_size=$(wc -c < "$ctx_dir/rules.md" 2>/dev/null || echo 0)
+  if [[ "$rules_size" -lt 50 ]]; then
+    {
+      echo "# Non-Negotiable Rules"
+      echo ""
+      [[ "$STACK_JAVA" == true ]] && cat <<'RULES'
+- Never write getters/setters manually — use Lombok @Data or @Value
+- Never put business logic in controllers — delegate to @Service
+- Always use constructor injection via @RequiredArgsConstructor
+- Every public REST endpoint must have @PreAuthorize or explicit permit
+- Never use System.out.println — use SLF4J Logger
+- Never catch (Exception e) — catch specific exceptions or rethrow
+- JPA entities never expose DTOs — use MapStruct mappers
+- @Transactional only on public service methods — not on private ones
+RULES
+      [[ "$STACK_ANGULAR" == true ]] && cat <<'RULES'
+- Never use document.getElementById — use @ViewChild with ElementRef
+- Always unsubscribe with takeUntilDestroyed() or async pipe
+- No TypeScript `any` — define proper interfaces or use `unknown`
+- Never hardcode route strings — use a typed Routes constant
+RULES
+      [[ "$STACK_REACT" == true ]] && cat <<'RULES'
+- No TypeScript `any` — define proper interfaces or use `unknown`
+- Every useEffect must declare its dependency array
+- No direct DOM manipulation — use refs
+RULES
+    } > "$ctx_dir/rules.md"
+  fi
+  ok "rules.md ($(wc -c < "$ctx_dir/rules.md") bytes)"
+
+  # ── CLAUDE.md index ───────────────────────────────────────────────────────
+  cat > "CLAUDE.md" <<'CLAUDEMD'
+# Project Context
+
+@.claude/context/stack.md
+@.claude/context/architecture.md
+@.claude/context/rules.md
+
+<!-- If a task is active, TASK.md will appear here automatically -->
+CLAUDEMD
+
+  # Append TASK.md import if a spec is active
+  if [[ -f ".aikit-specs/.active-spec" ]]; then
+    echo "" >> CLAUDE.md
+    echo "@TASK.md" >> CLAUDE.md
+  fi
+
+  echo ""
+  ok "CLAUDE.md → thin index (imports stack.md + architecture.md + rules.md)"
+  info "Edit .claude/context/*.md to customize the context for this project"
+  echo ""
 }
 
 # ── Phase 3: settings.json ────────────────────────────────────────────────────
