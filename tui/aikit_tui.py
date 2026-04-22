@@ -434,8 +434,8 @@ class ResultModal(ModalScreen):
 
 # ── Main App ──────────────────────────────────────────────────────────────────
 
-TABS = ["checklist", "activity", "spec"]
-TAB_LABELS = {"checklist": "Checklist", "activity": "Activity", "spec": "Spec"}
+TABS = ["checklist", "activity", "spec", "log"]
+TAB_LABELS = {"checklist": "Checklist", "activity": "Activity", "spec": "Spec", "log": "Log"}
 
 class AikitTUI(App):
     TITLE = "AI Dev Kit"
@@ -512,6 +512,8 @@ class AikitTUI(App):
     #tab-checklist { height: 1fr; }
     #tab-activity  { height: 1fr; display: none; }
     #tab-spec      { height: 1fr; display: none; padding: 1; }
+    #tab-log       { height: 1fr; display: none; padding: 1; }
+    #log-content   { height: auto; color: $text-muted; }
 
     #checklist { height: 1fr; margin: 0 1; }
 
@@ -588,6 +590,7 @@ class AikitTUI(App):
         Binding("1", "tab_checklist", "Checklist"),
         Binding("2", "tab_activity", "Activity"),
         Binding("3", "tab_spec", "Spec"),
+        Binding("4", "tab_log", "Log"),
     ]
 
     selected_spec: reactive[dict | None] = reactive(None)
@@ -597,6 +600,7 @@ class AikitTUI(App):
         super().__init__()
         self.root = find_project_root()
         self.specs: list[dict] = []
+        self._log_lines: list[str] = []
 
     # ── Compose ───────────────────────────────────────────────────────────────
 
@@ -620,6 +624,7 @@ class AikitTUI(App):
                     yield Button("Checklist  [1]", id="ctab-checklist", classes="ctab-active")
                     yield Button("Activity   [2]", id="ctab-activity",  classes="ctab")
                     yield Button("Spec       [3]", id="ctab-spec",      classes="ctab")
+                    yield Button("Log        [4]", id="ctab-log",       classes="ctab")
 
                 # Tab panels
                 with Vertical(id="tab-checklist"):
@@ -630,6 +635,9 @@ class AikitTUI(App):
 
                 with ScrollableContainer(id="tab-spec"):
                     yield Static("Select a spec to read it.", id="spec-content")
+
+                with ScrollableContainer(id="tab-log"):
+                    yield Static("No command running yet.", id="log-content")
 
                 # Action bar
                 with Horizontal(id="action-bar"):
@@ -709,9 +717,13 @@ class AikitTUI(App):
     @on(Button.Pressed, "#ctab-spec")
     def tab_spec_btn(self) -> None: self._switch_tab("spec")
 
+    @on(Button.Pressed, "#ctab-log")
+    def tab_log_btn(self) -> None: self._switch_tab("log")
+
     def action_tab_checklist(self) -> None: self._switch_tab("checklist")
     def action_tab_activity(self)  -> None: self._switch_tab("activity")
     def action_tab_spec(self)      -> None: self._switch_tab("spec")
+    def action_tab_log(self)       -> None: self._switch_tab("log")
 
     def _load_activity(self, spec: dict) -> None:
         self.query_one("#activity-content", Static).update("⟳ Loading…")
@@ -885,13 +897,22 @@ class AikitTUI(App):
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _stream_to_busy(self, line: str) -> None:
-        """Called from worker thread with each output line."""
-        self.call_from_thread(
-            self.query_one("#busy-label", Label).update, f"⟳ {line}"
-        )
+        """Called from worker thread — appends line to Log tab and updates busy label."""
+        self._log_lines.append(line)
+        content = "\n".join(self._log_lines)
+        self.call_from_thread(self._apply_log_line, line, content)
+
+    def _apply_log_line(self, last_line: str, full: str) -> None:
+        self.query_one("#busy-label", Label).update(f"⟳ {last_line[-60:]}")
+        self.query_one("#log-content", Static).update(full)
+        self.query_one("#tab-log", ScrollableContainer).scroll_end(animate=False)
 
     def _set_busy(self, message: str) -> None:
+        # Clear log and switch to Log tab automatically
+        self._log_lines = [message]
+        self.query_one("#log-content", Static).update(message)
         self.query_one("#busy-label", Label).update(message)
+        self._switch_tab("log")
         for btn_id in ["btn-approve", "btn-start", "btn-review", "btn-close"]:
             self.query_one(f"#{btn_id}", Button).disabled = True
 
