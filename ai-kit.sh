@@ -1293,8 +1293,8 @@ _cmd_spec_approve() {
   fi
 
   local scope_items
-  scope_items=$(grep -c '^\- \[' "$file" 2>/dev/null || echo 0)
-  if [[ "$scope_items" -eq 0 ]]; then
+  scope_items=$(grep -c '^\- \[' "$file" 2>/dev/null || true)
+  if [[ "${scope_items:-0}" -eq 0 ]]; then
     fail "## Scope has no checklist items (add at least one '- [ ] ...' line)."
     errors=$((errors+1))
   fi
@@ -1302,8 +1302,8 @@ _cmd_spec_approve() {
   local files_section
   files_section=$(_spec_extract_section "$file" "Files expected to change")
   local file_count
-  file_count=$(echo "$files_section" | grep -c '^- ' 2>/dev/null || echo 0)
-  if [[ "$file_count" -eq 0 ]]; then
+  file_count=$(echo "$files_section" | grep -c '^- ' 2>/dev/null || true)
+  if [[ "${file_count:-0}" -eq 0 ]]; then
     fail "## Files expected to change has no entries."
     errors=$((errors+1))
   fi
