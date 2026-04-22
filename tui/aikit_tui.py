@@ -448,7 +448,7 @@ class AikitTUI(App):
     }
     .ctab:hover { color: $text; }
     .ctab-active {
-        background: rgba(88,166,255,.15);
+        background: $primary-darken-2;
         border: solid $accent;
         color: $accent;
         padding: 0 2;
