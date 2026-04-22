@@ -609,24 +609,30 @@ main() {
     spec)
       local subcmd="${2:-help}"
       case "$subcmd" in
-        new)     _cmd_spec_new     "${@:3}" ;;
-        approve) _cmd_spec_approve "${3:-}" ;;
-        start)   _cmd_spec_start   "${3:-}" ;;
-        review)  _cmd_spec_review  "${3:-}" ;;
-        close)   _cmd_spec_close   "${3:-}" ;;
+        new)     _cmd_spec_new        "${@:3}" ;;
+        approve) _cmd_spec_approve   "${3:-}" ;;
+        start)   _cmd_spec_start     "${3:-}" ;;
+        check)   _cmd_spec_check     "${3:-}" ;;
+        update)  _cmd_spec_update    "${3:-}" "${4:-}" ;;
+        review)  _cmd_spec_review    "${3:-}" ;;
+        close)   _cmd_spec_close     "${3:-}" ;;
         list)    _cmd_spec_list ;;
-        show)    _cmd_spec_show    "${3:-}" ;;
+        show)    _cmd_spec_show      "${3:-}" ;;
         *)
           echo "Usage: ai-kit spec <subcommand>"
           echo ""
           echo "Subcommands:"
-          echo "  new [description]  Create a new spec file"
-          echo "  approve <id>       Validate and approve a spec"
-          echo "  start <id>         Activate spec, generate TASK.md"
-          echo "  review [id]        Review implementation coverage against spec"
-          echo "  close [id]         Close active spec, link commits, archive"
-          echo "  list               List all specs"
-          echo "  show <id>          Print a spec"
+          echo "  new [description]        Create a new spec file"
+          echo "  approve <id>             Validate and approve a spec"
+          echo "  start <id>               Activate spec, generate TASK.md"
+          echo "  check [id]               Show progress without AI (fast)"
+          echo "  update add-file [path]   Add a file to spec scope"
+          echo "  update add-task [desc]   Add a task to spec checklist"
+          echo "  update tick [n|keyword]  Mark a checklist task as done"
+          echo "  review [id]              AI review of implementation vs spec"
+          echo "  close [id]               Review + archive spec with commit links"
+          echo "  list                     List all specs"
+          echo "  show <id>                Print a spec"
           ;;
       esac
       ;;
@@ -644,13 +650,17 @@ main() {
       echo "  install-git-hook       Install auditor as a git pre-commit hook"
       echo "  commit                 Review staged diff, generate commit message and commit"
       echo "                         Flags: --push, --dry-run, --no-review"
-      echo "  spec new [description] Create a spec for a task"
-      echo "  spec approve <id>      Approve a spec for implementation"
-      echo "  spec start <id>        Activate spec and generate TASK.md"
-      echo "  spec review [id]       Review implementation coverage against spec"
-      echo "  spec close [id]        Review + archive the active spec with commit links"
-      echo "  spec list              List all specs"
-      echo "  spec show <id>         Print a spec"
+      echo "  spec new [description]       Create a spec for a task"
+      echo "  spec approve <id>            Approve a spec for implementation"
+      echo "  spec start <id>              Activate spec and generate TASK.md"
+      echo "  spec check [id]              Show progress without AI (fast)"
+      echo "  spec update add-file [path]  Add a file to spec scope"
+      echo "  spec update add-task [desc]  Add a task to spec checklist"
+      echo "  spec update tick [n|kw]      Mark a checklist task as done"
+      echo "  spec review [id]             AI review of implementation vs spec"
+      echo "  spec close [id]              Review + archive with commit links"
+      echo "  spec list                    List all specs"
+      echo "  spec show <id>               Print a spec"
       ;;
   esac
 }
@@ -1304,9 +1314,10 @@ PYEOF
 # ── Command: spec start ───────────────────────────────────────────────────────
 _cmd_spec_start() {
   local id="${1:-}"
+  local no_header="${2:-}"
   [[ -z "$id" ]] && fail "Usage: ai-kit spec start <id>" && exit 1
 
-  header "spec start" "Activating $id"
+  [[ "$no_header" != "--no-header" ]] && header "spec start" "Activating $id"
 
   local file
   file=$(_spec_find_file "$id")
@@ -1409,6 +1420,248 @@ TASKMD
   echo ""
 }
 
+# ── Spec diff helper — smart diff (summarizes large diffs) ───────────────────
+_spec_build_diff() {
+  local start_commit="${1:-}"
+  local diff=""
+
+  if ! git rev-parse --git-dir &>/dev/null 2>&1; then
+    echo "(not a git repo)"
+    return 0
+  fi
+
+  local base="${start_commit:-HEAD~1}"
+  local stat
+  stat=$(git diff "${base}..HEAD" --stat 2>/dev/null || true)
+
+  if [[ -z "$stat" ]]; then
+    echo "(no commits since spec start)"
+    return 0
+  fi
+
+  # Count changed lines to decide: full diff vs per-file summaries
+  local total_lines
+  total_lines=$(git diff "${base}..HEAD" -- '*.java' '*.ts' '*.tsx' '*.js' '*.jsx' '*.py' 2>/dev/null | wc -l | tr -d ' ')
+
+  if [[ "$total_lines" -le 350 ]]; then
+    # Small diff — send full content
+    echo "$stat"
+    echo ""
+    git diff "${base}..HEAD" -- '*.java' '*.ts' '*.tsx' '*.js' '*.jsx' '*.py' 2>/dev/null
+  else
+    # Large diff — send stat + per-file summaries to avoid truncation
+    echo "$stat"
+    echo ""
+    echo "--- Per-file summaries (diff too large for full content) ---"
+    git diff "${base}..HEAD" --name-only -- '*.java' '*.ts' '*.tsx' '*.js' '*.jsx' '*.py' 2>/dev/null | \
+    while IFS= read -r f; do
+      [[ -f "$f" ]] || continue
+      local added removed
+      added=$(git diff "${base}..HEAD" -- "$f" 2>/dev/null | grep -c '^+[^+]' || echo 0)
+      removed=$(git diff "${base}..HEAD" -- "$f" 2>/dev/null | grep -c '^-[^-]' || echo 0)
+      echo ""
+      echo "### $f  (+$added/-$removed)"
+      # New functions / classes added
+      git diff "${base}..HEAD" -- "$f" 2>/dev/null | grep '^+' | grep -E '(class |def |function |public |private |@GetMapping|@PostMapping|@Service|@Repository|@Component)' | head -8 | sed 's/^+/  /'
+    done
+  fi
+}
+
+# ── Command: spec check (lightweight, no AI) ──────────────────────────────────
+_cmd_spec_check() {
+  local id="${1:-}"
+
+  if [[ -z "$id" ]]; then
+    [[ -f "$SPEC_DIR/.active-spec" ]] && id=$(cat "$SPEC_DIR/.active-spec") || { fail "No active spec."; exit 1; }
+  fi
+
+  header "spec check" "$id — no AI"
+
+  local file
+  file=$(_spec_find_file "$id")
+  [[ -z "$file" ]] && fail "Spec $id not found." && exit 1
+
+  local start_commit=""
+  [[ -f "$SPEC_DIR/.spec-start-commit" ]] && start_commit=$(cat "$SPEC_DIR/.spec-start-commit")
+
+  # Files touched since spec start
+  local touched_files=""
+  if git rev-parse --git-dir &>/dev/null 2>&1 && [[ -n "$start_commit" ]]; then
+    touched_files=$(git diff "${start_commit}..HEAD" --name-only 2>/dev/null || true)
+  fi
+
+  echo ""
+
+  # ── Checklist progress ────────────────────────────────────────────────────
+  echo "  Checklist"
+  local total=0 done=0
+  while IFS= read -r line; do
+    if echo "$line" | grep -qP '^\s*- \[x\]'; then
+      done=$((done+1)); total=$((total+1))
+      echo -e "  ${C_GREEN}✔${C_RESET} $(echo "$line" | sed 's/^\s*- \[x\] //')"
+    elif echo "$line" | grep -qP '^\s*- \[ \]'; then
+      total=$((total+1))
+      echo -e "  ${C_YELLOW}○${C_RESET} $(echo "$line" | sed 's/^\s*- \[ \] //')"
+    fi
+  done < "$file"
+  echo ""
+  echo "  Progress: $done/$total tasks marked done"
+
+  # ── Expected files coverage ───────────────────────────────────────────────
+  echo ""
+  echo "  Expected files"
+  local files_section
+  files_section=$(_spec_extract_section "$file" "Files expected to change")
+
+  while IFS= read -r line; do
+    [[ "$line" =~ ^-\ (.+)$ ]] || continue
+    local expected="${BASH_REMATCH[1]}"
+    expected=$(echo "$expected" | sed 's/ *(new)//; s/ *← NEW//' | tr -d ' ')
+    local exp_base
+    exp_base=$(basename "$expected")
+    local found=false
+    while IFS= read -r touched; do
+      local t_base
+      t_base=$(basename "$touched")
+      if [[ "$t_base" == "$exp_base" ]] || echo "$touched" | grep -qF "$expected"; then
+        found=true; break
+      fi
+    done <<< "$touched_files"
+    if [[ "$found" == true ]]; then
+      echo -e "  ${C_GREEN}✔${C_RESET} $expected"
+    else
+      echo -e "  ${C_YELLOW}○${C_RESET} $expected  ${C_YELLOW}(not touched yet)${C_RESET}"
+    fi
+  done <<< "$files_section"
+
+  # ── Out-of-scope changes ──────────────────────────────────────────────────
+  if [[ -n "$touched_files" ]]; then
+    local oos_found=false
+    while IFS= read -r touched; do
+      [[ -z "$touched" ]] && continue
+      local t_base
+      t_base=$(basename "$touched")
+      local in_scope=false
+      while IFS= read -r line; do
+        [[ "$line" =~ ^-\ (.+)$ ]] || continue
+        local expected="${BASH_REMATCH[1]}"
+        expected=$(echo "$expected" | sed 's/ *(new)//; s/ *← NEW//' | tr -d ' ')
+        local exp_base
+        exp_base=$(basename "$expected")
+        if [[ "$t_base" == "$exp_base" ]] || echo "$touched" | grep -qF "$expected"; then
+          in_scope=true; break
+        fi
+      done <<< "$files_section"
+      if [[ "$in_scope" == false ]]; then
+        if [[ "$oos_found" == false ]]; then
+          echo ""
+          echo "  Out-of-scope changes detected"
+          oos_found=true
+        fi
+        echo -e "  ${C_YELLOW}!${C_RESET} $touched"
+      fi
+    done <<< "$touched_files"
+  fi
+
+  echo ""
+}
+
+# ── Command: spec update ──────────────────────────────────────────────────────
+_cmd_spec_update() {
+  local subcmd="${1:-}"
+  local value="${2:-}"
+
+  local id=""
+  [[ -f "$SPEC_DIR/.active-spec" ]] && id=$(cat "$SPEC_DIR/.active-spec") || { fail "No active spec."; exit 1; }
+
+  local file
+  file=$(_spec_find_file "$id")
+  [[ -z "$file" ]] && fail "Spec $id not found." && exit 1
+
+  case "$subcmd" in
+    add-file)
+      [[ -z "$value" ]] && echo -n "  File path to add: " && read -r value
+      [[ -z "$value" ]] && fail "File path required." && exit 1
+      # Append to Files expected to change section
+      "${PYTHON_CMD:-python3}" - "$file" "$value" <<'PYEOF'
+import sys, re
+path, new_file = sys.argv[1], sys.argv[2]
+with open(path) as f:
+    content = f.read()
+# Insert after the last item in Files expected to change
+content = re.sub(
+    r'(## Files expected to change\n(?:- .+\n)*)',
+    lambda m: m.group(0) + f'- {new_file}\n',
+    content
+)
+with open(path, 'w') as f:
+    f.write(content)
+PYEOF
+      ok "Added file to spec: $value"
+      ;;
+    add-task)
+      [[ -z "$value" ]] && echo -n "  Task description: " && read -r value
+      [[ -z "$value" ]] && fail "Task description required." && exit 1
+      "${PYTHON_CMD:-python3}" - "$file" "$value" <<'PYEOF'
+import sys, re
+path, task = sys.argv[1], sys.argv[2]
+with open(path) as f:
+    content = f.read()
+content = re.sub(
+    r'(## Scope\n(?:- \[.\] .+\n)*)',
+    lambda m: m.group(0) + f'- [ ] {task}\n',
+    content
+)
+with open(path, 'w') as f:
+    f.write(content)
+PYEOF
+      ok "Added task to spec: $value"
+      ;;
+    tick)
+      # Mark a task as done by number or partial match
+      [[ -z "$value" ]] && echo -n "  Task number or keyword: " && read -r value
+      [[ -z "$value" ]] && fail "Task identifier required." && exit 1
+      "${PYTHON_CMD:-python3}" - "$file" "$value" <<'PYEOF'
+import sys, re
+path, query = sys.argv[1], sys.argv[2].lower()
+with open(path) as f:
+    lines = f.readlines()
+count = 0
+for i, line in enumerate(lines):
+    if re.match(r'^\s*- \[ \]', line):
+        count += 1
+        try:
+            n = int(query)
+            if count == n:
+                lines[i] = line.replace('- [ ]', '- [x]', 1)
+                break
+        except ValueError:
+            if query in line.lower():
+                lines[i] = line.replace('- [ ]', '- [x]', 1)
+                break
+with open(path, 'w') as f:
+    f.writelines(lines)
+PYEOF
+      ok "Task marked as done."
+      ;;
+    *)
+      echo "Usage: ai-kit spec update <subcommand>"
+      echo ""
+      echo "  add-file [path]    Add a file to 'Files expected to change'"
+      echo "  add-task [desc]    Add a task to Scope checklist"
+      echo "  tick [n|keyword]   Mark a checklist task as done (- [ ] → - [x])"
+      return 0
+      ;;
+  esac
+
+  # Regenerate TASK.md to reflect changes
+  if [[ -f "TASK.md" ]]; then
+    info "Regenerating TASK.md..."
+    _cmd_spec_start "$id" --no-header 2>/dev/null || true
+    ok "TASK.md updated"
+  fi
+}
+
 # ── Command: spec review ─────────────────────────────────────────────────────
 _cmd_spec_review() {
   local id="${1:-}"
@@ -1432,33 +1685,18 @@ _cmd_spec_review() {
     exit 1
   fi
 
-  # Get git diff since spec was started
-  local diff=""
   local start_commit=""
-  if [[ -f "$SPEC_DIR/.spec-start-commit" ]]; then
-    start_commit=$(cat "$SPEC_DIR/.spec-start-commit")
-  fi
+  [[ -f "$SPEC_DIR/.spec-start-commit" ]] && start_commit=$(cat "$SPEC_DIR/.spec-start-commit")
 
-  if git rev-parse --git-dir &>/dev/null 2>&1; then
-    if [[ -n "$start_commit" ]]; then
-      diff=$(git diff "${start_commit}..HEAD" --stat 2>/dev/null || true)
-      local full_diff
-      full_diff=$(git diff "${start_commit}..HEAD" -- '*.java' '*.ts' '*.tsx' '*.js' '*.py' 2>/dev/null | head -400 || true)
-      [[ -n "$full_diff" ]] && diff="$diff
+  local diff
+  diff=$(_spec_build_diff "$start_commit")
 
-$full_diff"
-    else
-      diff=$(git diff HEAD~1..HEAD 2>/dev/null | head -400 || true)
-    fi
+  if [[ "$diff" == "(no commits since spec start)" || "$diff" == "(not a git repo)" ]]; then
+    warn "No git diff found since spec start — review will be based on spec alone."
   fi
 
   local spec_content
   spec_content=$(cat "$file")
-
-  if [[ -z "$diff" ]]; then
-    warn "No git diff found since spec start — review will be based on spec alone."
-    diff="(no git diff available)"
-  fi
 
   info "Calling claude -p to review implementation..."
 
@@ -1505,6 +1743,38 @@ PROMPT
   echo ""
   echo "$review_output"
   echo ""
+
+  # Auto-update checklist: mark DONE items as [x] in spec
+  local done_items
+  done_items=$(echo "$review_output" | grep -oP '(?<=✅ DONE — )[^—]+' | sed 's/[[:space:]]*$//' || true)
+  if [[ -n "$done_items" ]]; then
+    local updated=0
+    while IFS= read -r done_item; do
+      [[ -z "$done_item" ]] && continue
+      # Match against checklist items in spec file
+      local keyword
+      keyword=$(echo "$done_item" | awk '{print $1, $2}' | tr -d ':')
+      if grep -q "^\- \[ \].*$(echo "$keyword" | head -c 20)" "$file" 2>/dev/null; then
+        "${PYTHON_CMD:-python3}" - "$file" "$done_item" <<'PYEOF'
+import sys, re
+path, item = sys.argv[1], sys.argv[2].lower().strip()
+with open(path) as f:
+    lines = f.readlines()
+for i, line in enumerate(lines):
+    if re.match(r'^\s*- \[ \]', line):
+        # Match by first significant words of the item
+        words = [w for w in item.split() if len(w) > 3][:3]
+        if any(w in line.lower() for w in words):
+            lines[i] = line.replace('- [ ]', '- [x]', 1)
+            break
+with open(path, 'w') as f:
+    f.writelines(lines)
+PYEOF
+        updated=$((updated+1))
+      fi
+    done <<< "$done_items"
+    [[ "$updated" -gt 0 ]] && ok "Auto-updated $updated checklist item(s) to [x] in spec" || true
+  fi
 
   # Return exit code based on verdict so spec close can gate on it
   if echo "$review_output" | grep -q "READY TO CLOSE"; then
