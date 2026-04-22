@@ -322,7 +322,7 @@
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#how-it-works">How it works</a>
-    <a href="#workflow">Workflow</a>
+    <a href="#tui">TUI</a>
     <a href="#spec">Spec-driven</a>
     <a href="#rules">Rules</a>
     <a href="#installation">Installation</a>
@@ -392,6 +392,11 @@
         <div class="feature-icon">📄</div>
         <h3>Sectioned context files</h3>
         <p>Generates <code>stack.md</code>, <code>architecture.md</code> and <code>rules.md</code> in <code>.claude/context/</code>. CLAUDE.md becomes a thin index — Claude loads only what's relevant, saving tokens every session.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🖥️</div>
+        <h3>Terminal UI (TUI)</h3>
+        <p><code>ai-kit tui</code> opens a clickable, mouse-navigable interface. Manage specs, track tasks, stream live command output, and launch Claude directly — all without typing a command.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🗂️</div>
@@ -736,6 +741,134 @@
         <div style="font-size:.88rem;color:var(--muted);">Blocks commit if open CRITICAL/HIGH findings exist today. Sends the full diff to Claude for secrets, SQL injection, and unprotected endpoints review.</div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- TUI -->
+<section id="tui" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="section-inner">
+    <div class="section-label">Terminal UI</div>
+    <h2 class="section-title">Visual spec management — no typing required</h2>
+    <p class="section-desc"><code>ai-kit tui</code> gives you a full mouse-navigable interface for the spec lifecycle. Click to approve, start, run Claude, and track tasks in real time.</p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+
+      <!-- Left: buttons reference -->
+      <div>
+        <div style="margin-bottom: 1.5rem;">
+          <div style="font-size: .75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem;">Action buttons</div>
+          <div style="display: flex; flex-direction: column; gap: .6rem;">
+            <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: .75rem 1rem; display: flex; gap: 1rem; align-items: flex-start;">
+              <code style="min-width: 90px; color: var(--muted);">Approve</code>
+              <span style="font-size: .85rem; color: var(--muted);">Validate and approve a draft spec — checks that What, Scope and Files are filled.</span>
+            </div>
+            <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: .75rem 1rem; display: flex; gap: 1rem; align-items: flex-start;">
+              <code style="min-width: 90px; color: var(--accent2);">Start</code>
+              <span style="font-size: .85rem; color: var(--muted);">Activate the spec — sets status to in-progress and writes <code>TASK.md</code> to the project root.</span>
+            </div>
+            <div style="background: var(--bg3); border: 1px solid rgba(88,166,255,.4); border-radius: 8px; padding: .75rem 1rem; display: flex; gap: 1rem; align-items: flex-start;">
+              <code style="min-width: 90px; color: var(--accent);">✦ Claude</code>
+              <span style="font-size: .85rem; color: var(--muted);">Suspends the TUI, opens Claude Code in the project directory with the task pre-loaded. TUI resumes automatically when you exit Claude.</span>
+            </div>
+            <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: .75rem 1rem; display: flex; gap: 1rem; align-items: flex-start;">
+              <code style="min-width: 90px; color: var(--warn);">Review</code>
+              <span style="font-size: .85rem; color: var(--muted);">AI reviews the implementation against the spec. If issues are found, a <strong>✦ Fix with Claude</strong> button appears directly in the result modal.</span>
+            </div>
+            <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: .75rem 1rem; display: flex; gap: 1rem; align-items: flex-start;">
+              <code style="min-width: 90px; color: var(--danger);">Close</code>
+              <span style="font-size: .85rem; color: var(--muted);">Closes the spec — moves to <code>done/</code>, removes <code>TASK.md</code>, links commits.</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size: .75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .75rem;">Tab panels</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: .6rem;">
+          <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: .75rem;">
+            <div style="font-weight: 600; font-size: .85rem; margin-bottom: .25rem;">Checklist</div>
+            <div style="font-size: .8rem; color: var(--muted);">Live task progress. Click a task to tick it done.</div>
+          </div>
+          <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: .75rem;">
+            <div style="font-weight: 600; font-size: .85rem; margin-bottom: .25rem;">Activity</div>
+            <div style="font-size: .8rem; color: var(--muted);">Commits since start, files changed vs spec scope, audit findings.</div>
+          </div>
+          <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: .75rem;">
+            <div style="font-weight: 600; font-size: .85rem; margin-bottom: .25rem;">Spec</div>
+            <div style="font-size: .8rem; color: var(--muted);">Full spec markdown for the selected spec.</div>
+          </div>
+          <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: .75rem;">
+            <div style="font-weight: 600; font-size: .85rem; margin-bottom: .25rem;">Log</div>
+            <div style="font-size: .8rem; color: var(--muted);">Real-time output stream from running commands.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: terminal mockup -->
+      <div class="terminal-wrap" style="margin-top: 0;">
+        <div class="terminal-bar">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          <div class="terminal-title">ai-kit tui</div>
+        </div>
+        <div class="terminal-body" style="min-height: 340px; padding: 0; display: flex;">
+
+          <!-- Left col: spec list -->
+          <div style="width: 140px; border-right: 1px solid var(--border); padding: .75rem .5rem; flex-shrink: 0;">
+            <div style="font-size: .7rem; color: var(--accent); font-weight: 700; margin-bottom: .4rem; padding-left: .25rem;">SPECS</div>
+            <div style="font-size: .7rem; color: #484f58; padding: .1rem .25rem;">── ACTIVE ──</div>
+            <div style="font-size: .75rem; color: var(--accent2); padding: .25rem .25rem; background: rgba(88,166,255,.08); border-radius: 4px; margin: .1rem 0;">● SPEC-002 [3/4]</div>
+            <div style="font-size: .7rem; color: #484f58; padding: .1rem .25rem; margin-top: .3rem;">── DRAFT ──</div>
+            <div style="font-size: .75rem; color: var(--muted); padding: .25rem .25rem;">· SPEC-003 [0/7]</div>
+            <div style="font-size: .7rem; color: #484f58; padding: .1rem .25rem; margin-top: .3rem;">── DONE ──</div>
+            <div style="font-size: .75rem; color: #484f58; padding: .25rem .25rem;">✓ SPEC-001 [6/6]</div>
+            <div style="margin-top: auto; padding-top: 1rem;">
+              <div style="font-size: .72rem; background: var(--accent); color: #0d1117; font-weight: 700; text-align: center; padding: .3rem; border-radius: 4px; margin-top: 4rem;">＋ New Spec</div>
+            </div>
+          </div>
+
+          <!-- Center: detail -->
+          <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+            <div style="background: rgba(88,166,255,.12); padding: .3rem .75rem; font-size: .75rem; color: var(--accent); font-weight: 700; border-bottom: 1px solid var(--border);">SPEC-002  ● ACTIVE</div>
+            <div style="padding: .2rem .75rem; font-size: .72rem; color: var(--muted); border-bottom: 1px solid var(--border);">Add optional bio field to the user model</div>
+            <div style="padding: .2rem .75rem; font-size: .72rem; color: var(--warn); border-bottom: 1px solid var(--border);">[███████░░░] 3/4 tasks (75%)</div>
+
+            <!-- tabs -->
+            <div style="display: flex; border-bottom: 1px solid var(--border); background: var(--bg3);">
+              <div style="font-size: .68rem; padding: .3rem .6rem; color: var(--accent); border: 1px solid var(--accent); background: rgba(88,166,255,.1); margin: .2rem .15rem; border-radius: 3px;">Checklist</div>
+              <div style="font-size: .68rem; padding: .3rem .6rem; color: var(--muted); margin: .2rem .15rem;">Activity</div>
+              <div style="font-size: .68rem; padding: .3rem .6rem; color: var(--muted); margin: .2rem .15rem;">Spec</div>
+              <div style="font-size: .68rem; padding: .3rem .6rem; color: var(--muted); margin: .2rem .15rem;">Log</div>
+            </div>
+
+            <!-- checklist -->
+            <div style="padding: .5rem .75rem; flex: 1; font-size: .75rem;">
+              <div style="color: var(--accent2); margin-bottom: .3rem;">✔  Add bio field to User model</div>
+              <div style="color: var(--accent2); margin-bottom: .3rem;">✔  Create migration for bio column</div>
+              <div style="color: var(--accent2); margin-bottom: .3rem;">✔  Include bio in GET /api/users/me</div>
+              <div style="color: var(--accent); margin-bottom: .3rem;">○  Allow PATCH /api/users/me to update bio</div>
+            </div>
+
+            <!-- action bar -->
+            <div style="display: flex; gap: .3rem; padding: .4rem .5rem; border-top: 1px solid var(--border); flex-wrap: wrap;">
+              <div style="font-size: .65rem; padding: .2rem .5rem; border: 1px solid var(--border); border-radius: 3px; color: var(--muted);">Approve</div>
+              <div style="font-size: .65rem; padding: .2rem .5rem; border: 1px solid var(--accent2); border-radius: 3px; color: var(--accent2);">Start</div>
+              <div style="font-size: .65rem; padding: .2rem .5rem; border: 1px solid var(--accent); border-radius: 3px; color: var(--accent); background: rgba(88,166,255,.1);">✦ Claude</div>
+              <div style="font-size: .65rem; padding: .2rem .5rem; border: 1px solid var(--warn); border-radius: 3px; color: var(--warn);">Review</div>
+              <div style="font-size: .65rem; padding: .2rem .5rem; border: 1px solid var(--danger); border-radius: 3px; color: var(--danger);">Close</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Workflow note -->
+    <div style="margin-top: 2rem; padding: 1.25rem 1.5rem; background: rgba(88,166,255,.05); border: 1px solid rgba(88,166,255,.2); border-radius: var(--radius); font-size: .9rem; color: var(--muted);">
+      <strong style="color: var(--text);">Typical flow:</strong>
+      &nbsp; New Spec &nbsp;→&nbsp; Approve &nbsp;→&nbsp; Start &nbsp;→&nbsp;
+      <strong style="color: var(--accent);">✦ Claude</strong> (implements)
+      &nbsp;→&nbsp; Review &nbsp;→&nbsp; <em>Fix with Claude if needed</em> &nbsp;→&nbsp; Close
+    </div>
+
   </div>
 </section>
 
@@ -1089,6 +1222,7 @@ bash smart-commit.sh --push</pre></div>
 ai-kit init
 ai-kit update           <span class="c"># update hooks in-place</span>
 ai-kit doctor           <span class="c"># diagnose installation</span>
+ai-kit tui              <span class="c"># open the visual TUI</span>
 
 <span class="c"># Spec-driven workflow</span>
 ai-kit spec new "add payment endpoint"
