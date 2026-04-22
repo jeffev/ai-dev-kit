@@ -637,6 +637,10 @@ main() {
       esac
       ;;
 
+    tui)
+      _cmd_tui
+      ;;
+
     help|*)
       echo "Usage: bash ai-kit.sh <command>"
       echo ""
@@ -644,6 +648,7 @@ main() {
       echo "  init                   Bootstrap AI tooling for the current project"
       echo "  update                 Update hooks and commands from the ai-dev-kit repo"
       echo "  doctor                 Diagnose hook installation and configuration"
+      echo "  tui                    Open the interactive terminal UI"
       echo "  stats                  Show audit statistics from audit.log"
       echo "  audit-test <file>      Run the auditor manually against a file"
       echo "  audit-report [file]    Generate a markdown report from audit.log"
@@ -1007,6 +1012,30 @@ _cmd_stats() {
   done
 
   echo ""
+}
+
+# ── Command: tui ─────────────────────────────────────────────────────────────
+_cmd_tui() {
+  local tui_script="$AIKIT_DIR/tui/aikit_tui.py"
+
+  if [[ ! -f "$tui_script" ]]; then
+    fail "TUI script not found: $tui_script"
+    fail "Try: ai-kit update"
+    exit 1
+  fi
+
+  # Ensure textual is installed
+  if ! "${PYTHON_CMD:-python3}" -c "import textual" 2>/dev/null; then
+    info "Installing textual (one-time)…"
+    "${PYTHON_CMD:-python3}" -m pip install textual --quiet || {
+      fail "Could not install textual. Run: pip install textual"
+      exit 1
+    }
+    ok "textual installed."
+  fi
+
+  AIKIT_SCRIPT="$(cd "$AIKIT_DIR" && pwd)/ai-kit.sh" \
+    "${PYTHON_CMD:-python3}" "$tui_script"
 }
 
 # ── Command: install-git-hook ─────────────────────────────────────────────────
