@@ -77,6 +77,21 @@ def _parse_spec(path: Path, status: str, active_id: str) -> dict:
         if m2:
             checklist.append({"done": m2.group(1) == "x", "text": m2.group(2), "line_index": i})
 
+    # Parse expected files
+    expected_files: list[str] = []
+    in_files = False
+    for line in lines:
+        if re.match(r"^## Files expected to change", line):
+            in_files = True
+            continue
+        if in_files:
+            if re.match(r"^## ", line):
+                break
+            m3 = re.match(r"^- (.+)", line)
+            if m3:
+                f = re.sub(r"\s*\(.*\)$", "", m3.group(1)).strip()
+                expected_files.append(f)
+
     return {
         "id": spec_id,
         "path": path,
@@ -84,6 +99,7 @@ def _parse_spec(path: Path, status: str, active_id: str) -> dict:
         "is_active": spec_id == active_id and status == "active",
         "what": what,
         "checklist": checklist,
+        "expected_files": expected_files,
         "text": text,
         "total": len(checklist),
         "done": sum(1 for c in checklist if c["done"]),
@@ -133,12 +149,120 @@ def get_audit_summary(root: Path) -> str:
     return "\n".join(today_lines[-15:])
 
 
+def get_activity_data(root: Path, spec: dict) -> str:
+    """Build the Activity tab content for a spec."""
+    lines: list[str] = []
+
+    # ── Start commit ──────────────────────────────────────────────────────────
+    start_hash = ""
+    start_commit_file = root / ".aikit-specs" / ".spec-start-commit"
+    if start_commit_file.exists():
+        start_hash = start_commit_file.read_text().strip()
+
+    try:
+        subprocess.check_output(
+            ["git", "rev-parse", "--git-dir"],
+            cwd=str(root), stderr=subprocess.DEVNULL
+        )
+        has_git = True
+    except Exception:
+        has_git = False
+
+    # ── Commits since start ───────────────────────────────────────────────────
+    lines.append("── Commits since spec start ──────────────────")
+    if not has_git:
+        lines.append("  (not a git repo)")
+    elif not start_hash:
+        lines.append("  (no start commit recorded — run 'spec start' first)")
+    else:
+        try:
+            log_out = subprocess.check_output(
+                ["git", "log", "--oneline", f"{start_hash}..HEAD"],
+                cwd=str(root), stderr=subprocess.DEVNULL, text=True
+            ).strip()
+            if log_out:
+                for entry in log_out.splitlines():
+                    lines.append(f"  {entry}")
+            else:
+                lines.append("  (no commits yet since spec start)")
+        except Exception:
+            lines.append("  (could not read git log)")
+
+    lines.append("")
+
+    # ── Changed files vs scope ────────────────────────────────────────────────
+    lines.append("── Files changed vs scope ────────────────────")
+    if has_git and start_hash:
+        try:
+            diff_files = subprocess.check_output(
+                ["git", "diff", "--name-only", f"{start_hash}..HEAD"],
+                cwd=str(root), stderr=subprocess.DEVNULL, text=True
+            ).strip()
+            changed = diff_files.splitlines() if diff_files else []
+        except Exception:
+            changed = []
+
+        expected = spec.get("expected_files", [])
+
+        if not changed:
+            lines.append("  (no file changes yet)")
+        else:
+            for f in changed:
+                in_scope = any(
+                    f == e or f.endswith(e) or e.endswith(f) or
+                    Path(f).name == Path(e).name
+                    for e in expected
+                )
+                icon = "✔" if in_scope else "✗"
+                tag = "" if in_scope else "  ← out of scope"
+                lines.append(f"  {icon}  {f}{tag}")
+
+        # Expected files not yet touched
+        untouched = [
+            e for e in expected
+            if not any(
+                c == e or c.endswith(e) or e.endswith(c) or
+                Path(c).name == Path(e).name
+                for c in changed
+            )
+        ]
+        if untouched:
+            lines.append("")
+            lines.append("  Not yet touched:")
+            for f in untouched:
+                lines.append(f"  ○  {f}")
+    else:
+        lines.append("  (no start commit — cannot compute diff)")
+
+    lines.append("")
+
+    # ── Audit log since start ─────────────────────────────────────────────────
+    lines.append("── Audit findings (all time) ─────────────────")
+    log_path = root / ".claude" / "hooks" / "logs" / "audit.log"
+    if not log_path.exists():
+        lines.append("  (no audit log found)")
+    else:
+        all_lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+        spec_id = spec["id"]
+        # Show findings not just today but all time for this spec area
+        relevant = [l for l in all_lines if "SPEC-SCOPE" in l or spec_id in l]
+        if not relevant:
+            # Fall back to last 10 entries
+            relevant = all_lines[-10:]
+        if relevant:
+            for entry in relevant[-20:]:
+                lines.append(f"  {entry}")
+        else:
+            lines.append("  (no findings)")
+
+    return "\n".join(lines)
+
+
 def _strip_ansi(text: str) -> str:
     return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
 def _find_bash() -> str:
-    """Locate bash, preferring Git Bash on Windows over WSL."""
     if sys.platform == "win32":
         for candidate in [
             r"C:\Program Files\Git\bin\bash.exe",
@@ -258,6 +382,9 @@ class ResultModal(ModalScreen):
 
 # ── Main App ──────────────────────────────────────────────────────────────────
 
+TABS = ["checklist", "activity", "spec"]
+TAB_LABELS = {"checklist": "Checklist", "activity": "Activity", "spec": "Spec"}
+
 class AikitTUI(App):
     TITLE = "AI Dev Kit"
     SUB_TITLE = "Spec-driven workflow"
@@ -294,21 +421,53 @@ class AikitTUI(App):
         padding: 0 2;
         color: $text-muted;
         height: 1;
-        margin-top: 0;
     }
     #spec-progress {
         padding: 0 2;
         color: $warning;
         height: 1;
     }
-    #checklist-header {
-        padding: 0 2;
-        color: $text-muted;
-        height: 1;
-        margin-top: 1;
+
+    /* ── Tab bar ── */
+    #center-tabs {
+        height: 3;
+        layout: horizontal;
         border-bottom: solid $primary-darken-3;
+        padding: 0 1;
+        align: left middle;
+        background: $surface;
     }
+    .ctab {
+        background: $surface;
+        border: solid $primary-darken-3;
+        color: $text-muted;
+        padding: 0 2;
+        height: 1;
+        margin-right: 1;
+        min-width: 14;
+    }
+    .ctab:hover { color: $text; }
+    .ctab-active {
+        background: rgba(88,166,255,.15);
+        border: solid $accent;
+        color: $accent;
+        padding: 0 2;
+        height: 1;
+        margin-right: 1;
+        min-width: 14;
+    }
+
+    /* ── Tab panels ── */
+    #tab-checklist { height: 1fr; }
+    #tab-activity  { height: 1fr; display: none; }
+    #tab-spec      { height: 1fr; display: none; padding: 1; }
+
     #checklist { height: 1fr; margin: 0 1; }
+
+    #activity-content { height: auto; padding: 1; }
+    #spec-content     { height: auto; }
+
+    /* ── Action bar ── */
     #action-bar {
         height: 3;
         layout: horizontal;
@@ -319,6 +478,7 @@ class AikitTUI(App):
     #action-bar Button { margin-right: 1; min-width: 11; }
     #busy-label { color: $warning; margin-left: 1; }
 
+    /* ── Right panel ── */
     #right-panel { width: 30; background: $surface; }
     #right-header {
         background: $primary-darken-2;
@@ -336,7 +496,7 @@ class AikitTUI(App):
     #audit-container { height: 1fr; padding: 1; overflow-y: auto; }
     .section-label { color: $accent; text-style: bold; margin-bottom: 1; }
 
-    /* ── Checklist items ── */
+    /* ── Checklist item colors ── */
     .done { color: $success; }
     .todo { color: $accent; }
 
@@ -374,9 +534,13 @@ class AikitTUI(App):
         Binding("r", "refresh_all", "Refresh"),
         Binding("a", "approve", "Approve"),
         Binding("s", "start", "Start"),
+        Binding("1", "tab_checklist", "Checklist"),
+        Binding("2", "tab_activity", "Activity"),
+        Binding("3", "tab_spec", "Spec"),
     ]
 
     selected_spec: reactive[dict | None] = reactive(None)
+    active_tab: reactive[str] = reactive("checklist")
 
     def __init__(self) -> None:
         super().__init__()
@@ -394,18 +558,34 @@ class AikitTUI(App):
                 yield ListView(id="spec-list")
                 yield Button("＋ New Spec", id="new-spec-btn", variant="primary")
 
-            # Center — spec detail + checklist
+            # Center — spec detail + tabs
             with Vertical(id="center-panel"):
                 yield Label(" Select a spec", id="spec-id-label")
                 yield Label("", id="spec-what")
                 yield Label("", id="spec-progress")
-                yield Label(" Checklist  (click item to tick)", id="checklist-header")
-                yield ListView(id="checklist")
+
+                # Tab bar
+                with Horizontal(id="center-tabs"):
+                    yield Button("Checklist  [1]", id="ctab-checklist", classes="ctab-active")
+                    yield Button("Activity   [2]", id="ctab-activity",  classes="ctab")
+                    yield Button("Spec       [3]", id="ctab-spec",      classes="ctab")
+
+                # Tab panels
+                with Vertical(id="tab-checklist"):
+                    yield ListView(id="checklist")
+
+                with ScrollableContainer(id="tab-activity"):
+                    yield Static("Select a spec to see activity.", id="activity-content")
+
+                with ScrollableContainer(id="tab-spec"):
+                    yield Static("Select a spec to read it.", id="spec-content")
+
+                # Action bar
                 with Horizontal(id="action-bar"):
                     yield Button("Approve", id="btn-approve")
-                    yield Button("Start", id="btn-start", variant="success")
-                    yield Button("Review", id="btn-review", variant="warning")
-                    yield Button("Close", id="btn-close", variant="error")
+                    yield Button("Start",   id="btn-start",  variant="success")
+                    yield Button("Review",  id="btn-review", variant="warning")
+                    yield Button("Close",   id="btn-close",  variant="error")
                     yield Label("", id="busy-label")
 
             # Right — git + audit
@@ -437,6 +617,52 @@ class AikitTUI(App):
         self.query_one("#git-content", Static).update(get_git_status(self.root))
         self.query_one("#audit-content", Static).update(get_audit_summary(self.root))
 
+    # ── Tab switching ─────────────────────────────────────────────────────────
+
+    def _switch_tab(self, tab: str) -> None:
+        self.active_tab = tab
+        for t in TABS:
+            panel = self.query_one(f"#tab-{t}")
+            panel.display = (t == tab)
+            btn = self.query_one(f"#ctab-{t}", Button)
+            btn.remove_class("ctab-active")
+            btn.add_class("ctab-active" if t == tab else "ctab")
+            if t != tab:
+                btn.remove_class("ctab-active")
+                btn.add_class("ctab")
+            else:
+                btn.remove_class("ctab")
+                btn.add_class("ctab-active")
+
+        # Populate on switch
+        if self.selected_spec:
+            if tab == "activity":
+                self._load_activity(self.selected_spec)
+            elif tab == "spec":
+                self.query_one("#spec-content", Static).update(self.selected_spec["text"])
+
+    @on(Button.Pressed, "#ctab-checklist")
+    def tab_checklist(self) -> None: self._switch_tab("checklist")
+
+    @on(Button.Pressed, "#ctab-activity")
+    def tab_activity(self) -> None: self._switch_tab("activity")
+
+    @on(Button.Pressed, "#ctab-spec")
+    def tab_spec_btn(self) -> None: self._switch_tab("spec")
+
+    def action_tab_checklist(self) -> None: self._switch_tab("checklist")
+    def action_tab_activity(self)  -> None: self._switch_tab("activity")
+    def action_tab_spec(self)      -> None: self._switch_tab("spec")
+
+    def _load_activity(self, spec: dict) -> None:
+        self.query_one("#activity-content", Static).update("⟳ Loading…")
+        self._fetch_activity(spec)
+
+    @work(thread=True)
+    def _fetch_activity(self, spec: dict) -> None:
+        data = get_activity_data(self.root, spec)
+        self.call_from_thread(self.query_one("#activity-content", Static).update, data)
+
     # ── Spec selection ────────────────────────────────────────────────────────
 
     @on(ListView.Selected, "#spec-list")
@@ -444,6 +670,8 @@ class AikitTUI(App):
         if isinstance(event.item, SpecItem):
             self.selected_spec = event.item.spec
             self._render_detail(event.item.spec)
+            # Reset to checklist tab on new selection
+            self._switch_tab("checklist")
 
     def _render_detail(self, spec: dict) -> None:
         status_tag = "● ACTIVE" if spec["is_active"] else spec["status"].upper()
@@ -468,6 +696,9 @@ class AikitTUI(App):
             if not item["done"]:
                 todo_rank += 1
             cl.append(ChecklistItem(item, todo_rank if not item["done"] else 0))
+
+        # Pre-populate spec tab content
+        self.query_one("#spec-content", Static).update(spec["text"])
 
     # ── Checklist click ───────────────────────────────────────────────────────
 
@@ -505,7 +736,6 @@ class AikitTUI(App):
                 return
             self._set_busy("⟳ Creating spec (calling AI)…")
             self._run_new_spec(description)
-
         self.push_screen(InputModal("New Spec", "Describe the feature or task…"), handle)
 
     @work(thread=True)
@@ -584,6 +814,8 @@ class AikitTUI(App):
     def action_refresh_all(self) -> None:
         self._reload_selected_spec() if self.selected_spec else self.load_specs()
         self.load_status()
+        if self.active_tab == "activity" and self.selected_spec:
+            self._load_activity(self.selected_spec)
         self.notify("Refreshed.", severity="information")
 
     # ── Helpers ───────────────────────────────────────────────────────────────
@@ -613,6 +845,8 @@ class AikitTUI(App):
             if spec["id"] == spec_id:
                 self.selected_spec = spec
                 self._render_detail(spec)
+                if self.active_tab == "activity":
+                    self._load_activity(spec)
                 return
 
 
