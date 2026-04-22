@@ -744,96 +744,156 @@
   <div class="section-inner">
     <div class="section-label">Spec-driven</div>
     <h2 class="section-title">Define before you build</h2>
-    <p class="section-desc">A spec is a short markdown file that aligns you and the AI on scope before a single line is written. Less retrabalho, fewer tokens wasted on the wrong thing.</p>
+    <p class="section-desc">A spec is a short markdown file that aligns you and the AI on scope before a single line is written. Every phase of the task has a dedicated command — from drafting to AI-reviewed close.</p>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;">
+    <!-- Lifecycle steps -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;margin-bottom:3rem;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center;">
+        <div style="font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem;">1 · Plan</div>
+        <code style="font-size:.8rem;">spec new</code>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:.4rem;">Claude drafts scope, contracts, files</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center;">
+        <div style="font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem;">2 · Approve</div>
+        <code style="font-size:.8rem;">spec approve</code>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:.4rem;">Validates What, Scope &amp; Files are filled</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center;">
+        <div style="font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem;">3 · Start</div>
+        <code style="font-size:.8rem;">spec start</code>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:.4rem;">Generates TASK.md, syncs CLAUDE.md</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center;">
+        <div style="font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem;">4 · Track</div>
+        <code style="font-size:.8rem;">spec check</code>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:.4rem;">Progress without AI — zero tokens</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center;">
+        <div style="font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem;">5 · Adapt</div>
+        <code style="font-size:.8rem;">spec update</code>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:.4rem;">Add files, tasks or tick items done</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center;">
+        <div style="font-size:.7rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem;">6 · Close</div>
+        <code style="font-size:.8rem;">spec close</code>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:.4rem;">AI reviews diff, archives with commits</div>
+      </div>
+    </div>
 
-      <!-- Left: flow steps -->
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div>
-            <h3>Create a spec</h3>
-            <p><code>ai-kit spec new "add search endpoint"</code> — Claude drafts the scope, contracts, files to touch and out-of-scope items.</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div>
-            <h3>Review &amp; approve</h3>
-            <p>Edit the generated file, then run <code>ai-kit spec approve SPEC-001</code>. Validates that What, Scope, and Files are filled in.</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div>
-            <h3>Start the session</h3>
-            <p><code>ai-kit spec start SPEC-001</code> generates a focused <code>TASK.md</code> (&lt;50 lines) at the project root. Claude reads it automatically — no need to re-explain the task.</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div>
-            <h3>Implement &amp; close</h3>
-            <p>Work with Claude. When done, <code>ai-kit spec close</code> archives the spec with commit links and removes <code>TASK.md</code>.</p>
-          </div>
-        </div>
+    <!-- Tabbed terminal demos -->
+    <div class="terminal-wrap">
+      <div class="terminal-bar">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <div class="terminal-title">ai-kit spec — examples</div>
+      </div>
+      <div style="background:var(--bg3);border-bottom:1px solid var(--border);padding:.4rem 1rem;display:flex;gap:.4rem;flex-wrap:wrap;">
+        <button class="spec-tab-btn active" onclick="showSpecTab('start',this)">new · approve · start</button>
+        <button class="spec-tab-btn" onclick="showSpecTab('check',this)">check</button>
+        <button class="spec-tab-btn" onclick="showSpecTab('update',this)">update</button>
+        <button class="spec-tab-btn" onclick="showSpecTab('review',this)">review · close</button>
       </div>
 
-      <!-- Right: terminal showing spec commands -->
-      <div>
-        <div class="terminal-wrap" style="margin-top:0;">
-          <div class="terminal-bar">
-            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
-            <div class="terminal-title">ai-kit spec</div>
-          </div>
-          <div class="terminal-body" style="min-height:340px;">
-            <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec new "Add user search endpoint"</span></div>
-            <div>&nbsp;</div>
-            <div><span class="t-muted">.... Calling claude -p to draft spec...</span></div>
-            <div><span class="t-ok">  OK</span>  Spec created: .aikit-specs/active/SPEC-001-add-user-search-endpoint.md</div>
-            <div><span class="t-muted">.... Review and edit the spec, then run:</span></div>
-            <div>&nbsp; &nbsp; <span class="t-accent">ai-kit spec approve SPEC-001</span></div>
-            <div>&nbsp;</div>
-            <div><span class="t-dim">──────────────────────────────────────</span></div>
-            <div>&nbsp;</div>
-            <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec approve SPEC-001</span></div>
-            <div>&nbsp;</div>
-            <div><span class="t-ok">  OK</span>  SPEC-001 approved</div>
-            <div><span class="t-muted">.... Scope: 5 file(s) (1 new), 4 task(s)</span></div>
-            <div><span class="t-muted">.... Run:   ai-kit spec start SPEC-001</span></div>
-            <div>&nbsp;</div>
-            <div><span class="t-dim">──────────────────────────────────────</span></div>
-            <div>&nbsp;</div>
-            <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec start SPEC-001</span></div>
-            <div>&nbsp;</div>
-            <div><span class="t-ok">  OK</span>  SPEC-001 is now active</div>
-            <div><span class="t-ok">  OK</span>  TASK.md written at project root</div>
-            <div><span class="t-muted">.... Claude Code will read TASK.md automatically</div>
-            <div><span class="t-muted">.... When done: ai-kit spec close SPEC-001</span></div>
-            <div>&nbsp;</div>
-            <div><span class="t-dim">──────────────────────────────────────</span></div>
-            <div>&nbsp;</div>
-            <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec list</span></div>
-            <div>&nbsp;</div>
-            <div>&nbsp; Active</div>
-            <div>&nbsp; ├─ <span class="t-accent">SPEC-001</span>  <span class="t-ok">in-progress</span>  SPEC-001 — Add user search endpoint <span class="t-ok">◀ current</span></div>
-            <div>&nbsp;</div>
-            <div>&nbsp; Done (last 5)</div>
-            <div>&nbsp; └─ <span class="t-muted">(none)</span></div>
-          </div>
-        </div>
+      <!-- new / approve / start -->
+      <div id="spec-tab-start" class="spec-panel">
+      <div class="terminal-body" style="min-height:280px;">
+        <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec new "Add user search endpoint"</span></div>
+        <div><span class="t-muted">.... Calling claude -p to draft spec...</span></div>
+        <div><span class="t-ok">  OK</span>  Spec created: .aikit-specs/active/SPEC-001-add-user-search-endpoint.md</div>
+        <div><span class="t-muted">.... Review and edit, then run: ai-kit spec approve SPEC-001</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec approve SPEC-001</span></div>
+        <div><span class="t-ok">  OK</span>  SPEC-001 approved</div>
+        <div><span class="t-muted">.... Scope: 5 file(s) (1 new), 4 task(s)</span></div>
+        <div><span class="t-muted">.... Run:   ai-kit spec start SPEC-001</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec start SPEC-001</span></div>
+        <div><span class="t-ok">  OK</span>  SPEC-001 is now active</div>
+        <div><span class="t-ok">  OK</span>  TASK.md written at project root</div>
+        <div><span class="t-ok">  OK</span>  CLAUDE.md updated with @TASK.md import</div>
+        <div><span class="t-muted">.... Auditor will log writes outside this spec's scope</span></div>
+        <div><span class="t-muted">.... When done: ai-kit spec close</span></div>
+      </div>
+      </div>
 
-        <!-- TASK.md preview -->
-        <div class="code-wrap" style="margin-top:1rem;">
-          <div class="code-header">
-            <span class="code-lang">markdown — TASK.md (auto-generated, &lt;50 lines)</span>
-          </div>
-          <div class="code-body"><pre><span class="c">&lt;!-- AUTO-GENERATED by ai-kit spec start --&gt;</span>
+      <!-- check -->
+      <div id="spec-tab-check" class="spec-panel" style="display:none;">
+      <div class="terminal-body" style="min-height:280px;">
+        <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec check</span></div>
+        <div>&nbsp;</div>
+        <div>&nbsp; Checklist</div>
+        <div>&nbsp; <span class="t-ok">✔</span> UserController: new GET /users/search endpoint</div>
+        <div>&nbsp; <span class="t-ok">✔</span> UserService: searchByEmail(String, Pageable)</div>
+        <div>&nbsp; <span class="t-warn">○</span> UserRepository: findByEmailContaining query</div>
+        <div>&nbsp; <span class="t-warn">○</span> Unit tests for service and controller layers</div>
+        <div>&nbsp;</div>
+        <div>&nbsp; Progress: <span class="t-ok">2/4</span> tasks marked done</div>
+        <div>&nbsp;</div>
+        <div>&nbsp; Expected files</div>
+        <div>&nbsp; <span class="t-ok">✔</span> src/.../UserController.java</div>
+        <div>&nbsp; <span class="t-ok">✔</span> src/.../UserService.java</div>
+        <div>&nbsp; <span class="t-warn">○</span> src/.../UserRepository.java <span class="t-warn">(not touched yet)</span></div>
+        <div>&nbsp; <span class="t-warn">○</span> src/.../dto/UserPageDTO.java <span class="t-warn">(not touched yet)</span></div>
+        <div>&nbsp; <span class="t-warn">○</span> src/test/.../UserControllerTest.java <span class="t-warn">(not touched yet)</span></div>
+      </div>
+      </div>
+
+      <!-- update -->
+      <div id="spec-tab-update" class="spec-panel" style="display:none;">
+      <div class="terminal-body" style="min-height:280px;">
+        <div><span class="t-dim"># scope changed mid-implementation — add without editing markdown</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec update add-file src/.../UserSearchCacheService.java</span></div>
+        <div><span class="t-ok">  OK</span>  Added file to spec: src/.../UserSearchCacheService.java</div>
+        <div><span class="t-ok">  OK</span>  TASK.md updated</div>
+        <div>&nbsp;</div>
+        <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec update add-task "add Redis cache for search results"</span></div>
+        <div><span class="t-ok">  OK</span>  Added task to spec: add Redis cache for search results</div>
+        <div><span class="t-ok">  OK</span>  TASK.md updated</div>
+        <div>&nbsp;</div>
+        <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec update tick "UserController"</span></div>
+        <div><span class="t-ok">  OK</span>  Task marked as done.</div>
+        <div>&nbsp;</div>
+        <div><span class="t-dim"># tick also accepts task number: ai-kit spec update tick 1</span></div>
+      </div>
+      </div>
+
+      <!-- review / close -->
+      <div id="spec-tab-review" class="spec-panel" style="display:none;">
+      <div class="terminal-body" style="min-height:280px;">
+        <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec review</span></div>
+        <div><span class="t-muted">.... Calling claude -p to review implementation...</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-bold">### Coverage</span></div>
+        <div>&nbsp; <span class="t-ok">✅ DONE</span> — UserController: GET /search endpoint — found in UserController.java diff</div>
+        <div>&nbsp; <span class="t-ok">✅ DONE</span> — UserService: searchByEmail — method signature found</div>
+        <div>&nbsp; <span class="t-warn">⚠️ PARTIAL</span> — UserRepository: query exists, missing @Query annotation</div>
+        <div>&nbsp; <span class="t-err">❌ MISSING</span> — Unit tests — no test files in diff</div>
+        <div>&nbsp;</div>
+        <div><span class="t-bold">### Verdict</span></div>
+        <div>&nbsp; <span class="t-warn">NEEDS WORK</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-ok">  OK</span>  Auto-updated 2 checklist item(s) to [x] in spec</div>
+        <div>&nbsp;</div>
+        <div><span class="t-dim"># after fixing issues:</span></div>
+        <div><span class="t-prompt">$</span> <span class="t-accent">ai-kit spec close</span></div>
+        <div><span class="t-ok">  OK</span>  Review passed — proceeding to close.</div>
+        <div><span class="t-ok">  OK</span>  SPEC-001 closed → .aikit-specs/done/</div>
+        <div><span class="t-ok">  OK</span>  TASK.md removed · CLAUDE.md @TASK.md import removed</div>
+      </div>
+      </div>
+
+    </div>
+
+    <!-- TASK.md + scope guard note side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;">
+      <div class="code-wrap" style="margin:0;">
+        <div class="code-header"><span class="code-lang">markdown — TASK.md (auto-generated)</span></div>
+        <div class="code-body"><pre><span class="c">&lt;!-- AUTO-GENERATED by ai-kit spec start --&gt;</span>
 <span class="k"># Current Task: SPEC-001</span>
 
 <span class="k">## Objective</span>
-Add GET /users/search?email= returning paginated UserSummaryDTO.
+Add GET /users/search?email= returning
+paginated UserSummaryDTO.
 
 <span class="k">## Files to touch</span>
 - src/.../UserController.java
@@ -845,10 +905,23 @@ Add GET /users/search?email= returning paginated UserSummaryDTO.
 <span class="k">## Out of scope — do not touch</span>
 - Authentication / security config
 - Database migrations</pre></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;">
+          <div style="font-size:.75rem;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;">Scope guard</div>
+          <div style="font-size:.85rem;color:var(--muted);">When a spec is active, the auditor logs a <code>LOW</code> finding if Claude writes a file not listed in the spec. Suppress with <code>// ai-kit:ignore SPEC-SCOPE</code>.</div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;">
+          <div style="font-size:.75rem;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;">Session start</div>
+          <div style="font-size:.85rem;color:var(--muted);">Every Claude Code session shows the active spec, task progress (<code>done/total</code>), and warns if <code>TASK.md</code> is missing.</div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;">
+          <div style="font-size:.75rem;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;">Smart diff</div>
+          <div style="font-size:.85rem;color:var(--muted);"><code>spec review</code> sends the full diff when small (&le;350 lines) or per-file summaries when large — so the AI always gets accurate input regardless of diff size.</div>
         </div>
       </div>
-
     </div>
+
   </div>
 </section>
 
@@ -1058,6 +1131,19 @@ ai-kit audit-test src/main/java/MyClass.java</pre></div>
       b.style.color = 'var(--muted)';
     });
     document.getElementById('aud-' + name).style.display = 'block';
+    btn.style.background = 'rgba(88,166,255,.15)';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+  }
+
+  function showSpecTab(name, btn) {
+    document.querySelectorAll('.spec-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.spec-tab-btn').forEach(b => {
+      b.style.background = 'var(--bg2)';
+      b.style.borderColor = 'var(--border)';
+      b.style.color = 'var(--muted)';
+    });
+    document.getElementById('spec-tab-' + name).style.display = 'block';
     btn.style.background = 'rgba(88,166,255,.15)';
     btn.style.borderColor = 'var(--accent)';
     btn.style.color = 'var(--accent)';
