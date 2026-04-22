@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -131,14 +133,28 @@ def get_audit_summary(root: Path) -> str:
     return "\n".join(today_lines[-15:])
 
 
+def _find_bash() -> str:
+    """Locate bash, preferring Git Bash on Windows over WSL."""
+    if sys.platform == "win32":
+        for candidate in [
+            r"C:\Program Files\Git\bin\bash.exe",
+            r"C:\Program Files (x86)\Git\bin\bash.exe",
+            r"C:\Program Files\Git\usr\bin\bash.exe",
+        ]:
+            if Path(candidate).exists():
+                return candidate
+    found = shutil.which("bash")
+    return found if found else "bash"
+
+
 def run_aikit(root: Path, *args: str) -> tuple[int, str, str]:
+    bash = _find_bash()
     aikit_script = os.environ.get("AIKIT_SCRIPT", "")
     if aikit_script and Path(aikit_script).exists():
-        cmd = ["bash", aikit_script, *args]
+        cmd = [bash, aikit_script, *args]
     else:
-        # Try local ai-kit.sh, then global command
         local = root / "ai-kit.sh"
-        cmd = ["bash", str(local), *args] if local.exists() else ["ai-kit", *args]
+        cmd = [bash, str(local), *args] if local.exists() else ["ai-kit", *args]
     r = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True)
     return r.returncode, r.stdout, r.stderr
 
