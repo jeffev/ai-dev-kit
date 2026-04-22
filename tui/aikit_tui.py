@@ -351,12 +351,13 @@ class AikitTUI(App):
         border: thick $primary;
         padding: 1 2;
         width: 84;
-        height: 32;
+        height: 28;
+        layout: vertical;
     }
-    #result-title { text-align: center; margin-bottom: 1; text-style: bold; color: $accent; }
-    #result-scroll { height: 1fr; border: solid $primary-darken-3; padding: 0 1; }
+    #result-title { height: 1; text-align: center; text-style: bold; color: $accent; margin-bottom: 1; }
+    #result-scroll { height: 1fr; border: solid $primary-darken-3; padding: 0 1; overflow-y: auto; }
     #result-content { height: auto; }
-    #close-btn { dock: bottom; width: 100%; margin-top: 1; }
+    #close-btn { height: 3; width: 100%; margin-top: 1; }
     """
 
     BINDINGS = [
