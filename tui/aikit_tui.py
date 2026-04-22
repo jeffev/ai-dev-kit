@@ -420,28 +420,39 @@ class InputModal(ModalScreen):
         self.dismiss(v or None)
 
 
-class ResultModal(ModalScreen):
+class ResultModal(ModalScreen[bool]):
     BINDINGS = [
-        ("escape", "dismiss", "Close"),
-        ("q", "dismiss", "Close"),
-        ("enter", "dismiss", "Close"),
+        ("escape", "dismiss_false", "Close"),
+        ("q", "dismiss_false", "Close"),
+        ("enter", "dismiss_false", "Close"),
     ]
 
-    def __init__(self, title: str, output: str) -> None:
+    def __init__(self, title: str, output: str, fix_with_claude: bool = False) -> None:
         super().__init__()
         self._title = title
         self._output = output
+        self._fix_with_claude = fix_with_claude
 
     def compose(self) -> ComposeResult:
         with Vertical(id="result-box"):
             yield Label(self._title, id="result-title")
             with ScrollableContainer(id="result-scroll"):
                 yield Static(self._output, id="result-content")
-            yield Button("Close  [Enter]", variant="primary", id="close-btn")
+            with Horizontal(id="result-btns"):
+                if self._fix_with_claude:
+                    yield Button("✦ Fix with Claude", variant="primary", id="fix-claude-btn")
+                yield Button("Close  [Enter]", id="close-btn")
+
+    def action_dismiss_false(self) -> None:
+        self.dismiss(False)
 
     @on(Button.Pressed, "#close-btn")
     def close(self) -> None:
-        self.dismiss()
+        self.dismiss(False)
+
+    @on(Button.Pressed, "#fix-claude-btn")
+    def fix_claude(self) -> None:
+        self.dismiss(True)
 
 
 # ── Main App ──────────────────────────────────────────────────────────────────
@@ -590,7 +601,9 @@ class AikitTUI(App):
     #result-title { height: 1; text-align: center; text-style: bold; color: $accent; margin-bottom: 1; }
     #result-scroll { height: 1fr; border: solid $primary-darken-3; padding: 0 1; overflow-y: auto; }
     #result-content { height: auto; }
-    #close-btn { height: 3; width: 100%; margin-top: 1; }
+    #result-btns { height: 3; margin-top: 1; align: center middle; }
+    #result-btns Button { margin: 0 1; min-width: 18; height: 3; }
+    #fix-claude-btn { background: $primary; }
     """
 
     BINDINGS = [
@@ -885,10 +898,19 @@ class AikitTUI(App):
     @work(thread=True)
     def _run_review(self, spec_id: str) -> None:
         rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "review", spec_id)
-        self.call_from_thread(self._append_log, "\n✔ Review complete — see modal" if rc == 0 else "\n✖ Review failed")
+        self.call_from_thread(self._append_log, "\n✔ Review complete" if rc == 0 else "\n✖ Review failed")
         self.call_from_thread(self._set_idle)
-        self.call_from_thread(self.push_screen, ResultModal(f"Review {spec_id}", _strip_ansi(out + err).strip()))
         self.call_from_thread(self._reload_selected_spec)
+
+        def _on_review_closed(fix: bool) -> None:
+            if fix:
+                self.call_later(self.action_run_claude)
+
+        self.call_from_thread(
+            self.push_screen,
+            ResultModal(f"Review {spec_id}", _strip_ansi(out + err).strip(), fix_with_claude=True),
+            _on_review_closed,
+        )
 
     @on(Button.Pressed, "#btn-close")
     def btn_close_pressed(self) -> None:
