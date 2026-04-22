@@ -310,6 +310,7 @@ class AikitTUI(App):
         align: left middle;
     }
     #action-bar Button { margin-right: 1; min-width: 11; }
+    #busy-label { color: $warning; margin-left: 1; }
 
     #right-panel { width: 30; background: $surface; }
     #right-header {
@@ -398,6 +399,7 @@ class AikitTUI(App):
                     yield Button("Start", id="btn-start", variant="success")
                     yield Button("Review", id="btn-review", variant="warning")
                     yield Button("Close", id="btn-close", variant="error")
+                    yield Label("", id="busy-label")
 
             # Right — git + audit
             with Vertical(id="right-panel"):
@@ -514,12 +516,13 @@ class AikitTUI(App):
         spec = self._require_spec()
         if spec is None:
             return
-        self.notify(f"Running review for {spec['id']} — this may take a moment…")
+        self._set_busy("⟳ Running review (calling AI)…")
         self._run_review(spec["id"])
 
     @work(thread=True)
     def _run_review(self, spec_id: str) -> None:
         rc, out, err = run_aikit(self.root, "spec", "review", spec_id)
+        self.call_from_thread(self._set_idle)
         self.call_from_thread(
             self.push_screen, ResultModal(f"Review {spec_id}", (out + err).strip())
         )
@@ -530,12 +533,13 @@ class AikitTUI(App):
         spec = self._require_spec()
         if spec is None:
             return
-        self.notify(f"Closing {spec['id']} — running review first…")
+        self._set_busy("⟳ Closing (running review first)…")
         self._run_close(spec["id"])
 
     @work(thread=True)
     def _run_close(self, spec_id: str) -> None:
         rc, out, err = run_aikit(self.root, "spec", "close", spec_id)
+        self.call_from_thread(self._set_idle)
         self.call_from_thread(
             self.push_screen, ResultModal(f"Close {spec_id}", (out + err).strip())
         )
@@ -549,6 +553,16 @@ class AikitTUI(App):
         self.notify("Refreshed.", severity="information")
 
     # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _set_busy(self, message: str) -> None:
+        self.query_one("#busy-label", Label).update(message)
+        for btn_id in ["btn-approve", "btn-start", "btn-review", "btn-close"]:
+            self.query_one(f"#{btn_id}", Button).disabled = True
+
+    def _set_idle(self) -> None:
+        self.query_one("#busy-label", Label).update("")
+        for btn_id in ["btn-approve", "btn-start", "btn-review", "btn-close"]:
+            self.query_one(f"#{btn_id}", Button).disabled = False
 
     def _require_spec(self) -> dict | None:
         if self.selected_spec is None:
