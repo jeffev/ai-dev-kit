@@ -133,6 +133,10 @@ def get_audit_summary(root: Path) -> str:
     return "\n".join(today_lines[-15:])
 
 
+def _strip_ansi(text: str) -> str:
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
+
+
 def _find_bash() -> str:
     """Locate bash, preferring Git Bash on Windows over WSL."""
     if sys.platform == "win32":
@@ -489,7 +493,7 @@ class AikitTUI(App):
             self.call_from_thread(self.notify, f"Task {task_index} ticked ✔", severity="information")
             self.call_from_thread(self._reload_selected_spec)
         else:
-            combined = (out + err).strip()
+            combined = _strip_ansi(out + err).strip()
             self.call_from_thread(self.push_screen, ResultModal("Tick error", combined))
 
     # ── Action buttons ────────────────────────────────────────────────────────
@@ -508,7 +512,7 @@ class AikitTUI(App):
     def _run_new_spec(self, description: str) -> None:
         rc, out, err = run_aikit(self.root, "spec", "new", description)
         self.call_from_thread(self._set_idle)
-        self.call_from_thread(self.push_screen, ResultModal("New Spec", (out + err).strip()))
+        self.call_from_thread(self.push_screen, ResultModal("New Spec", _strip_ansi(out + err).strip()))
         self.call_from_thread(self.load_specs)
 
     @on(Button.Pressed, "#btn-approve")
@@ -523,7 +527,7 @@ class AikitTUI(App):
     def _run_approve(self, spec_id: str) -> None:
         rc, out, err = run_aikit(self.root, "spec", "approve", spec_id)
         self.call_from_thread(self._set_idle)
-        self.call_from_thread(self.push_screen, ResultModal(f"Approve {spec_id}", (out + err).strip()))
+        self.call_from_thread(self.push_screen, ResultModal(f"Approve {spec_id}", _strip_ansi(out + err).strip()))
         self.call_from_thread(self._reload_selected_spec)
 
     @on(Button.Pressed, "#btn-start")
@@ -538,7 +542,7 @@ class AikitTUI(App):
     def _run_start(self, spec_id: str) -> None:
         rc, out, err = run_aikit(self.root, "spec", "start", spec_id)
         self.call_from_thread(self._set_idle)
-        self.call_from_thread(self.push_screen, ResultModal(f"Start {spec_id}", (out + err).strip()))
+        self.call_from_thread(self.push_screen, ResultModal(f"Start {spec_id}", _strip_ansi(out + err).strip()))
         self.call_from_thread(self._reload_selected_spec)
 
     @on(Button.Pressed, "#btn-review")
@@ -554,7 +558,7 @@ class AikitTUI(App):
         rc, out, err = run_aikit(self.root, "spec", "review", spec_id)
         self.call_from_thread(self._set_idle)
         self.call_from_thread(
-            self.push_screen, ResultModal(f"Review {spec_id}", (out + err).strip())
+            self.push_screen, ResultModal(f"Review {spec_id}", _strip_ansi(out + err).strip())
         )
         self.call_from_thread(self._reload_selected_spec)
 
@@ -571,7 +575,7 @@ class AikitTUI(App):
         rc, out, err = run_aikit(self.root, "spec", "close", spec_id)
         self.call_from_thread(self._set_idle)
         self.call_from_thread(
-            self.push_screen, ResultModal(f"Close {spec_id}", (out + err).strip())
+            self.push_screen, ResultModal(f"Close {spec_id}", _strip_ansi(out + err).strip())
         )
         self.call_from_thread(self.load_specs)
 
