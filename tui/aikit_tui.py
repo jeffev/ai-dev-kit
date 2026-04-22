@@ -331,7 +331,7 @@ class AikitTUI(App):
 
     /* ── Checklist items ── */
     .done { color: $success; }
-    .todo { color: $text; }
+    .todo { color: $accent; }
 
     /* ── Modals ── */
     InputModal { align: center middle; }
@@ -456,8 +456,11 @@ class AikitTUI(App):
 
         cl = self.query_one("#checklist", ListView)
         cl.clear()
-        for i, item in enumerate(spec["checklist"], 1):
-            cl.append(ChecklistItem(item, i))
+        todo_rank = 0
+        for item in spec["checklist"]:
+            if not item["done"]:
+                todo_rank += 1
+            cl.append(ChecklistItem(item, todo_rank if not item["done"] else 0))
 
     # ── Checklist click ───────────────────────────────────────────────────────
 
@@ -467,18 +470,24 @@ class AikitTUI(App):
             return
         item = event.item
         if item.item_data["done"]:
-            self.notify("Already done.", severity="information")
             return
         spec = self.selected_spec
         if spec is None or not spec["is_active"]:
             self.notify("Only active specs can be updated.", severity="warning")
             return
-        rc, out, err = run_aikit(self.root, "spec", "update", "tick", str(item.task_index))
+        self._set_busy(f"⟳ Ticking task {item.task_index}…")
+        self._run_tick(item.task_index)
+
+    @work(thread=True)
+    def _run_tick(self, task_index: int) -> None:
+        rc, out, err = run_aikit(self.root, "spec", "update", "tick", str(task_index))
+        self.call_from_thread(self._set_idle)
         if rc == 0:
-            self.notify(f"Task {item.task_index} ticked ✔", severity="information")
-            self._reload_selected_spec()
+            self.call_from_thread(self.notify, f"Task {task_index} ticked ✔", severity="information")
+            self.call_from_thread(self._reload_selected_spec)
         else:
-            self.notify(f"Error: {(err or out).strip()[:80]}", severity="error")
+            combined = (out + err).strip()
+            self.call_from_thread(self.push_screen, ResultModal("Tick error", combined))
 
     # ── Action buttons ────────────────────────────────────────────────────────
 
