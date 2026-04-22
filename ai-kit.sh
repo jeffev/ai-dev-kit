@@ -615,7 +615,7 @@ main() {
         check)   _cmd_spec_check     "${3:-}" ;;
         update)  _cmd_spec_update    "${3:-}" "${4:-}" ;;
         review)  _cmd_spec_review    "${3:-}" ;;
-        close)   _cmd_spec_close     "${3:-}" ;;
+        close)   _cmd_spec_close     "${@:3}" ;;
         list)    _cmd_spec_list ;;
         show)    _cmd_spec_show      "${3:-}" ;;
         *)
@@ -1823,6 +1823,12 @@ PYEOF
 # ── Command: spec close ───────────────────────────────────────────────────────
 _cmd_spec_close() {
   local id="${1:-}"
+  local force=false
+  # Parse flags (--force skips the interactive [y/N] prompt)
+  for arg in "$@"; do
+    [[ "$arg" == "--force" ]] && force=true && id="${id/--force/}"
+  done
+  id="${id:-}"
 
   header "spec close" "Closing spec"
 
@@ -1849,9 +1855,13 @@ _cmd_spec_close() {
   if ! _cmd_spec_review "$id"; then
     echo ""
     warn "Review found issues or incomplete scope."
-    echo -n "  Close anyway? [y/N] "
-    read -r answer
-    [[ "$answer" != "y" && "$answer" != "Y" ]] && exit 0
+    if [[ "$force" == true ]]; then
+      warn "Closing anyway (--force)."
+    else
+      echo -n "  Close anyway? [y/N] "
+      read -r answer
+      [[ "$answer" != "y" && "$answer" != "Y" ]] && exit 0
+    fi
   else
     echo ""
     ok "Review passed — proceeding to close."

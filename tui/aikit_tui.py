@@ -572,7 +572,7 @@ class AikitTUI(App):
 
     @work(thread=True)
     def _run_close(self, spec_id: str) -> None:
-        rc, out, err = run_aikit(self.root, "spec", "close", spec_id)
+        rc, out, err = run_aikit(self.root, "spec", "close", spec_id, "--force")
         self.call_from_thread(self._set_idle)
         self.call_from_thread(
             self.push_screen, ResultModal(f"Close {spec_id}", _strip_ansi(out + err).strip())
