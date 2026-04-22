@@ -444,6 +444,29 @@ main() {
       _cmd_install_git_hook
       ;;
 
+    spec)
+      local subcmd="${2:-help}"
+      case "$subcmd" in
+        new)     _cmd_spec_new     "${@:3}" ;;
+        approve) _cmd_spec_approve "${3:-}" ;;
+        start)   _cmd_spec_start   "${3:-}" ;;
+        close)   _cmd_spec_close   "${3:-}" ;;
+        list)    _cmd_spec_list ;;
+        show)    _cmd_spec_show    "${3:-}" ;;
+        *)
+          echo "Usage: ai-kit spec <subcommand>"
+          echo ""
+          echo "Subcommands:"
+          echo "  new [description]  Create a new spec file"
+          echo "  approve <id>       Validate and approve a spec"
+          echo "  start <id>         Activate spec, generate TASK.md"
+          echo "  close [id]         Close active spec, link commits, archive"
+          echo "  list               List all specs"
+          echo "  show <id>          Print a spec"
+          ;;
+      esac
+      ;;
+
     help|*)
       echo "Usage: bash ai-kit.sh <command>"
       echo ""
@@ -457,6 +480,12 @@ main() {
       echo "  install-git-hook       Install auditor as a git pre-commit hook"
       echo "  commit                 Review staged diff, generate commit message and commit"
       echo "                         Flags: --push, --dry-run, --no-review"
+      echo "  spec new [description] Create a spec for a task"
+      echo "  spec approve <id>      Approve a spec for implementation"
+      echo "  spec start <id>        Activate spec and generate TASK.md"
+      echo "  spec close [id]        Archive the active spec with commit links"
+      echo "  spec list              List all specs"
+      echo "  spec show <id>         Print a spec"
       ;;
   esac
 }
@@ -862,6 +891,490 @@ HOOK
   ok "Pre-commit hook installed at $hook_file"
   info "The auditor will now run on every git commit."
   info "To bypass: git commit --no-verify"
+}
+
+# ── Spec helpers ─────────────────────────────────────────────────────────────
+
+SPEC_DIR=".aikit-specs"
+
+_spec_next_id() {
+  local counter_file="$SPEC_DIR/.spec-counter"
+  local n=1
+  if [[ -f "$counter_file" ]]; then
+    n=$(cat "$counter_file")
+    n=$((n + 1))
+  fi
+  echo "$n" > "$counter_file"
+  printf "SPEC-%03d" "$n"
+}
+
+_spec_slug() {
+  echo "$*" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/--*/-/g; s/^-//; s/-$//' | cut -c1-40
+}
+
+_spec_find_file() {
+  local id="$1"
+  local f
+  f=$(find "$SPEC_DIR" -name "${id}-*.md" 2>/dev/null | head -1)
+  echo "$f"
+}
+
+_spec_get_status() {
+  local file="$1"
+  grep -oP '(?<=^## Status\n).*' "$file" 2>/dev/null || \
+    awk '/^## Status/{getline; print}' "$file" | tr -d '[:space:]'
+}
+
+_spec_set_status() {
+  local file="$1"
+  local new_status="$2"
+  local current
+  current=$(_spec_get_status "$file")
+  sed -i "s/^$current$/$new_status/" "$file"
+}
+
+_spec_extract_section() {
+  local file="$1"
+  local section="$2"
+  awk "/^## $section/{found=1; next} found && /^## /{exit} found{print}" "$file"
+}
+
+_spec_context_from_claude_md() {
+  if [[ ! -f "CLAUDE.md" ]]; then echo ""; return; fi
+  awk '/^## Stack/{p=1} /^## Architecture/{p=1} /^## (Running|Non-Negotiable|Adding|Testing)/{p=0} p{print}' CLAUDE.md | head -60
+}
+
+# ── Command: spec new ─────────────────────────────────────────────────────────
+_cmd_spec_new() {
+  header "spec new" "Creating a new spec"
+
+  local description="$*"
+
+  if [[ -z "$description" ]]; then
+    echo -n "  Describe the task: "
+    read -r description
+  fi
+
+  [[ -z "$description" ]] && fail "Description is required." && exit 1
+
+  mkdir -p "$SPEC_DIR/active" "$SPEC_DIR/done"
+
+  local id
+  id=$(_spec_next_id)
+  local slug
+  slug=$(_spec_slug "$description")
+  local filename="${id}-${slug}.md"
+  local filepath="$SPEC_DIR/active/$filename"
+
+  local stack_context
+  stack_context=$(_spec_context_from_claude_md)
+
+  info "Calling claude -p to draft spec..."
+
+  local spec_content
+  spec_content=$(claude -p "$(cat <<PROMPT
+You are a senior software engineer writing a concise task spec.
+
+## Project context
+$stack_context
+
+## Task description
+$description
+
+## Instructions
+Generate a spec file in EXACTLY this markdown format. Fill every section based on the task description and project context. Be specific and concrete. If you don't have enough info for a section, write a clear placeholder in brackets.
+
+# ${id} — ${description}
+
+## Status
+draft
+
+## What
+[One sentence: the specific deliverable, e.g. "Add GET /users/search?email= endpoint returning paginated UserSummaryDTO list."]
+
+## Scope
+- [ ] [File or class]: [what changes]
+- [ ] [File or class]: [what changes]
+(list every file that needs to change — be specific)
+
+## Out of scope
+- [thing that will NOT be touched]
+- [thing that will NOT be touched]
+
+## Contracts
+### Request
+[HTTP method + path + query params, or method signature, or event schema]
+
+### Response
+[Response body structure or return type]
+
+## Stack context
+[2-3 bullet points about relevant patterns, naming conventions, or frameworks from the project context above]
+
+## Files expected to change
+- [exact relative path to file 1]
+- [exact relative path to file 2]
+(one per line, use (new) suffix for new files)
+
+## Approved by
+<!-- sign off here before running: ai-kit spec approve ${id} -->
+PROMPT
+)" 2>/dev/null || echo "")
+
+  if [[ -z "$spec_content" ]]; then
+    warn "claude -p returned empty output — writing template instead."
+    spec_content="# ${id} — ${description}
+
+## Status
+draft
+
+## What
+[Fill in: one sentence describing the deliverable]
+
+## Scope
+- [ ] [File or class]: [what changes]
+
+## Out of scope
+- [what will NOT be touched]
+
+## Contracts
+### Request
+[HTTP method + path + params, or method signature]
+
+### Response
+[Response body or return type]
+
+## Stack context
+- [Relevant pattern or convention]
+
+## Files expected to change
+- [path/to/file.ext]
+
+## Approved by
+<!-- sign off here before running: ai-kit spec approve ${id} -->"
+  fi
+
+  echo "$spec_content" > "$filepath"
+
+  echo ""
+  ok  "Spec created: $filepath"
+  info "Review and edit the spec, then run:"
+  echo ""
+  echo -e "    ${C_CYAN}ai-kit spec approve ${id}${C_RESET}"
+  echo ""
+}
+
+# ── Command: spec approve ─────────────────────────────────────────────────────
+_cmd_spec_approve() {
+  local id="${1:-}"
+  [[ -z "$id" ]] && fail "Usage: ai-kit spec approve <id>" && exit 1
+
+  header "spec approve" "Approving $id"
+
+  local file
+  file=$(_spec_find_file "$id")
+  if [[ -z "$file" ]]; then
+    fail "Spec $id not found in $SPEC_DIR/"
+    exit 1
+  fi
+
+  # Validate required sections
+  local errors=0
+
+  local what
+  what=$(_spec_extract_section "$file" "What")
+  if [[ -z "$what" || "$what" == *"[Fill in"* ]]; then
+    fail "## What section is empty or unfilled."
+    errors=$((errors+1))
+  fi
+
+  local scope_items
+  scope_items=$(grep -c '^\- \[' "$file" 2>/dev/null || echo 0)
+  if [[ "$scope_items" -eq 0 ]]; then
+    fail "## Scope has no checklist items (add at least one '- [ ] ...' line)."
+    errors=$((errors+1))
+  fi
+
+  local files_section
+  files_section=$(_spec_extract_section "$file" "Files expected to change")
+  local file_count
+  file_count=$(echo "$files_section" | grep -c '^- ' 2>/dev/null || echo 0)
+  if [[ "$file_count" -eq 0 ]]; then
+    fail "## Files expected to change has no entries."
+    errors=$((errors+1))
+  fi
+
+  if ! grep -q "^## Out of scope" "$file" 2>/dev/null; then
+    fail "## Out of scope section is missing."
+    errors=$((errors+1))
+  fi
+
+  if [[ $errors -gt 0 ]]; then
+    echo ""
+    echo "Fix the issues above in: $file"
+    exit 1
+  fi
+
+  # Set status to approved
+  "${PYTHON_CMD:-python3}" - "$file" <<'PYEOF'
+import sys, re
+path = sys.argv[1]
+with open(path) as f:
+    content = f.read()
+content = re.sub(r'(## Status\n)\S+', r'\1approved', content)
+with open(path, 'w') as f:
+    f.write(content)
+PYEOF
+
+  local new_tasks
+  new_tasks=$(grep -c '(new)' "$file" 2>/dev/null || echo 0)
+
+  echo ""
+  ok  "$id approved"
+  info "Scope: $file_count file(s) ($new_tasks new), $scope_items task(s)"
+  info "Run:   ai-kit spec start $id"
+  echo ""
+}
+
+# ── Command: spec start ───────────────────────────────────────────────────────
+_cmd_spec_start() {
+  local id="${1:-}"
+  [[ -z "$id" ]] && fail "Usage: ai-kit spec start <id>" && exit 1
+
+  header "spec start" "Activating $id"
+
+  local file
+  file=$(_spec_find_file "$id")
+  if [[ -z "$file" ]]; then
+    fail "Spec $id not found."
+    exit 1
+  fi
+
+  local status
+  status=$(_spec_get_status "$file")
+  if [[ "$status" != "approved" ]]; then
+    fail "Spec is '$status' — run 'ai-kit spec approve $id' first."
+    exit 1
+  fi
+
+  # Warn if another spec is already in-progress
+  local active_spec_file="$SPEC_DIR/.active-spec"
+  if [[ -f "$active_spec_file" ]]; then
+    local current_active
+    current_active=$(cat "$active_spec_file")
+    if [[ "$current_active" != "$id" ]]; then
+      warn "Another spec is already active: $current_active"
+      echo -n "  Continue and replace it? [y/N] "
+      read -r answer
+      [[ "$answer" != "y" && "$answer" != "Y" ]] && exit 0
+    fi
+  fi
+
+  # Set status to in-progress
+  "${PYTHON_CMD:-python3}" - "$file" <<'PYEOF'
+import sys, re
+path = sys.argv[1]
+with open(path) as f:
+    content = f.read()
+content = re.sub(r'(## Status\n)\S+', r'\1in-progress', content)
+with open(path, 'w') as f:
+    f.write(content)
+PYEOF
+
+  # Write active spec pointer
+  echo "$id" > "$active_spec_file"
+
+  # Generate TASK.md
+  local title
+  title=$(head -1 "$file" | sed 's/^# //')
+
+  local what
+  what=$(_spec_extract_section "$file" "What")
+
+  local files_section
+  files_section=$(_spec_extract_section "$file" "Files expected to change")
+
+  local scope_section
+  scope_section=$(_spec_extract_section "$file" "Scope")
+
+  local oos_section
+  oos_section=$(_spec_extract_section "$file" "Out of scope")
+
+  local stack_section
+  stack_section=$(_spec_extract_section "$file" "Stack context")
+
+  cat > "TASK.md" <<TASKMD
+<!-- AUTO-GENERATED by ai-kit spec start — edit the spec instead: $file -->
+# Current Task: ${title}
+
+## Objective
+${what}
+
+## Files to touch
+${files_section}
+
+## Checklist
+${scope_section}
+
+## Stack rules for this task
+${stack_section}
+
+## Out of scope — do not touch
+${oos_section}
+
+---
+*Spec: ${file} | Run \`ai-kit spec close ${id}\` when done.*
+TASKMD
+
+  echo ""
+  ok  "$id is now active"
+  ok  "TASK.md written at project root"
+  info "Claude Code will read TASK.md automatically on session start"
+  info "Auditor will log writes to files outside this spec's scope"
+  info "When done: ai-kit spec close $id"
+  echo ""
+}
+
+# ── Command: spec close ───────────────────────────────────────────────────────
+_cmd_spec_close() {
+  local id="${1:-}"
+
+  header "spec close" "Closing spec"
+
+  local active_spec_file="$SPEC_DIR/.active-spec"
+
+  if [[ -z "$id" ]]; then
+    if [[ -f "$active_spec_file" ]]; then
+      id=$(cat "$active_spec_file")
+    else
+      fail "No active spec. Provide an ID: ai-kit spec close <id>"
+      exit 1
+    fi
+  fi
+
+  local file
+  file=$(_spec_find_file "$id")
+  if [[ -z "$file" ]]; then
+    fail "Spec $id not found."
+    exit 1
+  fi
+
+  # Collect commits since start marker (use TASK.md creation time as proxy)
+  local commits=""
+  if git rev-parse --git-dir &>/dev/null 2>&1; then
+    commits=$(git log --oneline -10 2>/dev/null || true)
+  fi
+
+  # Set status to done and append commits
+  "${PYTHON_CMD:-python3}" - "$file" "$commits" <<'PYEOF'
+import sys, re
+path = sys.argv[1]
+commits = sys.argv[2]
+with open(path) as f:
+    content = f.read()
+content = re.sub(r'(## Status\n)\S+', r'\1done', content)
+if commits and '## Commits' not in content:
+    content = content.rstrip() + '\n\n## Commits\n' + '\n'.join(
+        '- ' + line for line in commits.strip().splitlines()
+    ) + '\n'
+with open(path, 'w') as f:
+    f.write(content)
+PYEOF
+
+  # Move to done/
+  local dest="$SPEC_DIR/done/$(basename "$file")"
+  mv "$file" "$dest"
+
+  # Remove TASK.md
+  if [[ -f "TASK.md" ]]; then
+    rm "TASK.md"
+    ok "TASK.md removed"
+  fi
+
+  # Clear active spec pointer
+  rm -f "$active_spec_file"
+
+  echo ""
+  ok  "$id closed"
+  ok  "Moved to $dest"
+  [[ -n "$commits" ]] && info "Linked commits: $(echo "$commits" | head -3 | tr '\n' ' ')" || true
+  echo ""
+}
+
+# ── Command: spec list ────────────────────────────────────────────────────────
+_cmd_spec_list() {
+  header "spec list" "All specs"
+
+  if [[ ! -d "$SPEC_DIR" ]]; then
+    info "No specs yet. Run: ai-kit spec new"
+    return 0
+  fi
+
+  local active_id=""
+  if [[ -f "$SPEC_DIR/.active-spec" ]]; then
+    active_id=$(cat "$SPEC_DIR/.active-spec")
+  fi
+
+  echo ""
+
+  local active_specs=()
+  while IFS= read -r f; do active_specs+=("$f"); done < <(find "$SPEC_DIR/active" -name "SPEC-*.md" 2>/dev/null | sort)
+
+  if [[ ${#active_specs[@]} -gt 0 ]]; then
+    echo "  Active"
+    for f in "${active_specs[@]}"; do
+      local sid
+      sid=$(basename "$f" .md | grep -oP '^SPEC-\d+')
+      local title
+      title=$(head -1 "$f" | sed 's/^# //')
+      local status
+      status=$(_spec_get_status "$f")
+      local marker=""
+      [[ "$sid" == "$active_id" ]] && marker="${C_GREEN} ◀ current${C_RESET}"
+      printf "  ├─ ${C_CYAN}%-10s${C_RESET}  %-12s  %s%b\n" "$sid" "$status" "$title" "$marker"
+    done
+  else
+    echo "  Active  (none)"
+  fi
+
+  echo ""
+
+  local done_specs=()
+  while IFS= read -r f; do done_specs+=("$f"); done < <(find "$SPEC_DIR/done" -name "SPEC-*.md" 2>/dev/null | sort -r | head -5)
+
+  echo "  Done (last 5)"
+  if [[ ${#done_specs[@]} -gt 0 ]]; then
+    for f in "${done_specs[@]}"; do
+      local sid
+      sid=$(basename "$f" .md | grep -oP '^SPEC-\d+')
+      local title
+      title=$(head -1 "$f" | sed 's/^# //')
+      printf "  └─ ${C_CYAN}%-10s${C_RESET}  %-12s  %s\n" "$sid" "done" "$title"
+    done
+  else
+    echo "  └─ (none)"
+  fi
+
+  echo ""
+  info "Run 'ai-kit spec show <id>' for details."
+  echo ""
+}
+
+# ── Command: spec show ────────────────────────────────────────────────────────
+_cmd_spec_show() {
+  local id="${1:-}"
+  [[ -z "$id" ]] && fail "Usage: ai-kit spec show <id>" && exit 1
+
+  local file
+  file=$(_spec_find_file "$id")
+  if [[ -z "$file" ]]; then
+    fail "Spec $id not found."
+    exit 1
+  fi
+
+  echo ""
+  cat "$file"
+  echo ""
 }
 
 main "$@"
