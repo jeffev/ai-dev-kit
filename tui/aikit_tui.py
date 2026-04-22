@@ -264,6 +264,18 @@ def _strip_ansi(text: str) -> str:
     return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
+def _find_claude() -> list[str]:
+    """Return the command list to invoke Claude CLI interactively."""
+    if sys.platform == "win32":
+        for name in ["claude.cmd", "claude.exe"]:
+            found = shutil.which(name)
+            if found:
+                return [found]
+        return ["cmd", "/c", "claude"]
+    found = shutil.which("claude")
+    return [found] if found else ["claude"]
+
+
 def _find_bash() -> str:
     if sys.platform == "win32":
         for candidate in [
@@ -591,6 +603,7 @@ class AikitTUI(App):
         Binding("2", "tab_activity", "Activity"),
         Binding("3", "tab_spec", "Spec"),
         Binding("4", "tab_log", "Log"),
+        Binding("c", "run_claude", "Claude"),
     ]
 
     selected_spec: reactive[dict | None] = reactive(None)
@@ -641,10 +654,11 @@ class AikitTUI(App):
 
                 # Action bar
                 with Horizontal(id="action-bar"):
-                    yield Button("Approve", id="btn-approve")
-                    yield Button("Start",   id="btn-start",  variant="success")
-                    yield Button("Review",  id="btn-review", variant="warning")
-                    yield Button("Close",   id="btn-close",  variant="error")
+                    yield Button("Approve",   id="btn-approve")
+                    yield Button("Start",     id="btn-start",      variant="success")
+                    yield Button("✦ Claude",  id="btn-run-claude", variant="primary")
+                    yield Button("Review",    id="btn-review",     variant="warning")
+                    yield Button("Close",     id="btn-close",      variant="error")
                     yield Label("", id="busy-label")
 
             # Right — git + audit
@@ -776,10 +790,12 @@ class AikitTUI(App):
         # Pre-populate spec tab content
         self.query_one("#spec-content", Static).update(spec["text"])
 
-        # Disable action buttons for closed specs
-        is_done = spec["status"] == "done"
+        # Disable action buttons appropriately per status
+        is_done   = spec["status"] == "done"
+        is_active = spec["status"] == "active"
         for btn_id in ["btn-approve", "btn-start", "btn-review", "btn-close"]:
             self.query_one(f"#{btn_id}", Button).disabled = is_done
+        self.query_one("#btn-run-claude", Button).disabled = not is_active
 
     # ── Checklist click ───────────────────────────────────────────────────────
 
@@ -890,6 +906,25 @@ class AikitTUI(App):
         self.call_from_thread(self.push_screen, ResultModal(f"Close {spec_id}", _strip_ansi(out + err).strip()))
         self.call_from_thread(self.load_specs)
 
+    # ── Run Claude (suspend TUI) ──────────────────────────────────────────────
+
+    @on(Button.Pressed, "#btn-run-claude")
+    async def btn_run_claude_pressed(self) -> None:
+        await self.action_run_claude()
+
+    async def action_run_claude(self) -> None:
+        spec = self._require_spec()
+        if spec is None:
+            return
+        if spec["status"] != "active":
+            self.notify("Start the spec first to generate TASK.md.", severity="warning")
+            return
+        async with self.suspend():
+            subprocess.run(_find_claude(), cwd=str(self.root))
+        self._reload_selected_spec()
+        self.load_status()
+        self.notify("Claude session ended — spec refreshed.", severity="information")
+
     # ── Key actions ───────────────────────────────────────────────────────────
 
     def action_refresh_all(self) -> None:
@@ -923,13 +958,18 @@ class AikitTUI(App):
         self.query_one("#log-content", Static).update(message)
         self.query_one("#busy-label", Label).update(message)
         self._switch_tab("log")
-        for btn_id in ["btn-approve", "btn-start", "btn-review", "btn-close"]:
+        for btn_id in ["btn-approve", "btn-start", "btn-run-claude", "btn-review", "btn-close"]:
             self.query_one(f"#{btn_id}", Button).disabled = True
 
     def _set_idle(self) -> None:
         self.query_one("#busy-label", Label).update("")
         for btn_id in ["btn-approve", "btn-start", "btn-review", "btn-close"]:
             self.query_one(f"#{btn_id}", Button).disabled = False
+        # Re-enable Claude button only if active spec
+        if self.selected_spec:
+            self.query_one("#btn-run-claude", Button).disabled = (
+                self.selected_spec["status"] != "active"
+            )
 
     def _require_spec(self) -> dict | None:
         if self.selected_spec is None:
