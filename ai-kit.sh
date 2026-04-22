@@ -1388,6 +1388,14 @@ ${oos_section}
 *Spec: ${file} | Run \`ai-kit spec close ${id}\` when done.*
 TASKMD
 
+  # Ensure CLAUDE.md imports TASK.md
+  if [[ -f "CLAUDE.md" ]]; then
+    if ! grep -q "@TASK.md" "CLAUDE.md" 2>/dev/null; then
+      printf '\n@TASK.md\n' >> "CLAUDE.md"
+      ok  "CLAUDE.md updated with @TASK.md import"
+    fi
+  fi
+
   echo ""
   ok  "$id is now active"
   ok  "TASK.md written at project root"
@@ -1451,6 +1459,24 @@ PYEOF
   if [[ -f "TASK.md" ]]; then
     rm "TASK.md"
     ok "TASK.md removed"
+  fi
+
+  # Remove @TASK.md import from CLAUDE.md
+  if [[ -f "CLAUDE.md" ]] && grep -q "@TASK.md" "CLAUDE.md" 2>/dev/null; then
+    "${PYTHON_CMD:-python3}" - "CLAUDE.md" <<'PYEOF'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    lines = f.readlines()
+cleaned = [l for l in lines if l.strip() != '@TASK.md']
+# Remove trailing blank lines added when @TASK.md was appended
+while cleaned and not cleaned[-1].strip():
+    cleaned.pop()
+cleaned.append('\n')
+with open(path, 'w') as f:
+    f.writelines(cleaned)
+PYEOF
+    ok "CLAUDE.md @TASK.md import removed"
   fi
 
   # Clear active spec pointer

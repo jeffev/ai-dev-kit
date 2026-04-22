@@ -132,6 +132,48 @@ fi
 # Custom rules from .aikit-rules.yml
 run_custom_rules "$FILE_PATH" "$TEMP_FILE" "$PROJECT_ROOT/.aikit-rules.yml"
 
+# Spec scope guard — warn when writing a file outside the active spec's scope
+_run_spec_scope_guard() {
+  local active_spec_pointer="$PROJECT_ROOT/.aikit-specs/.active-spec"
+  [[ -f "$active_spec_pointer" ]] || return 0
+
+  local spec_id
+  spec_id=$(cat "$active_spec_pointer")
+  local spec_file
+  spec_file=$(find "$PROJECT_ROOT/.aikit-specs/active" -name "${spec_id}-*.md" 2>/dev/null | head -1)
+  [[ -f "$spec_file" ]] || return 0
+
+  # Extract expected files from spec
+  local expected_files
+  expected_files=$(awk '/^## Files expected to change/{found=1;next} found && /^## /{exit} found && /^- /{print}' "$spec_file" \
+    | sed 's/^- //' | sed 's/ *(new)$//' | sed 's/ *← NEW$//' | tr -d ' ')
+
+  [[ -z "$expected_files" ]] && return 0
+
+  # Normalize the file path being written for comparison
+  local norm_path
+  norm_path=$(echo "$FILE_PATH" | sed 's|\\|/|g')
+
+  # Check if the written file matches any expected file (basename or path suffix)
+  local file_basename
+  file_basename=$(basename "$norm_path")
+
+  while IFS= read -r expected; do
+    [[ -z "$expected" ]] && continue
+    local exp_base
+    exp_base=$(basename "$expected")
+    # Match on basename or if the written path ends with the expected path
+    if [[ "$file_basename" == "$exp_base" ]] || echo "$norm_path" | grep -qF "$expected"; then
+      return 0
+    fi
+  done <<< "$expected_files"
+
+  # File is not in scope — log LOW finding
+  FINDINGS+=("LOW|SPEC-SCOPE|$FILE_PATH|1|File not listed in $spec_id scope. Scope creep? Update the spec or add: // ai-kit:ignore SPEC-SCOPE|")
+}
+
+_run_spec_scope_guard
+
 # Filter suppressed rules out of FINDINGS (inline + global .aikit-ignore)
 FILTERED_FINDINGS=()
 for finding in "${FINDINGS[@]}"; do

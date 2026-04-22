@@ -85,6 +85,27 @@ if [[ -f "$ISTANBUL_JSON" ]]; then
   echo "  └─ Istanbul line coverage: ${LINES_PCT}%"
 fi
 
+# ── Active spec ───────────────────────────────────────────────────────────────
+SPEC_POINTER=".aikit-specs/.active-spec"
+if [[ -f "$SPEC_POINTER" ]]; then
+  SPEC_ID=$(cat "$SPEC_POINTER")
+  SPEC_FILE=$(find ".aikit-specs/active" -name "${SPEC_ID}-*.md" 2>/dev/null | head -1)
+
+  if [[ -f "$SPEC_FILE" ]]; then
+    SPEC_WHAT=$(awk '/^## What/{found=1;next} found && /^## /{exit} found && NF{print;exit}' "$SPEC_FILE")
+    SPEC_TOTAL=$(grep -c '^\- \[' "$SPEC_FILE" 2>/dev/null || echo 0)
+    SPEC_DONE=$(grep -c '^\- \[x\]' "$SPEC_FILE" 2>/dev/null || echo 0)
+    SPEC_LEFT=$((SPEC_TOTAL - SPEC_DONE))
+
+    echo ""
+    echo "  Active Spec"
+    echo "  ├─ $SPEC_ID: $SPEC_WHAT"
+    echo "  ├─ Progress: $SPEC_DONE/$SPEC_TOTAL tasks done ($SPEC_LEFT remaining)"
+    [[ -f "TASK.md" ]] && echo "  └─ TASK.md present — Claude will read it automatically" \
+                       || echo "  └─ [!] TASK.md missing — run: ai-kit spec start $SPEC_ID"
+  fi
+fi
+
 # ── Custom rules ──────────────────────────────────────────────────────────────
 if [[ -f ".aikit-rules.yml" ]]; then
   RULE_COUNT=$(grep -c '^\s*- id:' ".aikit-rules.yml" 2>/dev/null || echo 0)
