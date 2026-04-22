@@ -430,10 +430,10 @@ class AikitTUI(App):
 
     /* ── Tab bar ── */
     #center-tabs {
-        height: 3;
+        height: 5;
         layout: horizontal;
         border-bottom: solid $primary-darken-3;
-        padding: 0 1;
+        padding: 1 1;
         align: left middle;
         background: $surface;
     }
@@ -441,20 +441,18 @@ class AikitTUI(App):
         background: $surface;
         border: solid $primary-darken-3;
         color: $text-muted;
-        padding: 0 2;
-        height: 1;
         margin-right: 1;
         min-width: 14;
+        height: 3;
     }
     .ctab:hover { color: $text; }
     .ctab-active {
         background: $primary-darken-2;
         border: solid $accent;
         color: $accent;
-        padding: 0 2;
-        height: 1;
         margin-right: 1;
         min-width: 14;
+        height: 3;
     }
 
     /* ── Tab panels ── */
