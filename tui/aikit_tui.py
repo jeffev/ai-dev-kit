@@ -919,8 +919,13 @@ class AikitTUI(App):
         if spec["status"] != "active":
             self.notify("Start the spec first to generate TASK.md.", severity="warning")
             return
+        initial_prompt = (
+            f"Read TASK.md and implement all pending tasks for {spec['id']}. "
+            "Follow the spec scope exactly. When done, run: ai-kit spec update tick <N> "
+            "for each completed task."
+        )
         with self.suspend():
-            subprocess.run(_find_claude(), cwd=str(self.root))
+            subprocess.run([*_find_claude(), initial_prompt], cwd=str(self.root))
         self._reload_selected_spec()
         self.load_status()
         self.notify("Claude session ended — spec refreshed.", severity="information")
