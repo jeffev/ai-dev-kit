@@ -1390,7 +1390,22 @@ PYEOF
   echo "$id" > "$active_spec_file"
   git rev-parse HEAD 2>/dev/null > "$SPEC_DIR/.spec-start-commit" || true
 
-  # Generate TASK.md
+  _generate_task_md "$id" "$file"
+
+  echo ""
+  ok  "$id is now active"
+  ok  "TASK.md written at project root"
+  info "Claude Code will read TASK.md automatically on session start"
+  info "Auditor will log writes to files outside this spec's scope"
+  info "When done: ai-kit spec close $id"
+  echo ""
+}
+
+# ── Internal: generate TASK.md from spec (no status check) ───────────────────
+_generate_task_md() {
+  local id="$1"
+  local file="$2"
+
   local title
   title=$(head -1 "$file" | sed 's/^# //')
 
@@ -1439,14 +1454,6 @@ TASKMD
       ok  "CLAUDE.md updated with @TASK.md import"
     fi
   fi
-
-  echo ""
-  ok  "$id is now active"
-  ok  "TASK.md written at project root"
-  info "Claude Code will read TASK.md automatically on session start"
-  info "Auditor will log writes to files outside this spec's scope"
-  info "When done: ai-kit spec close $id"
-  echo ""
 }
 
 # ── Spec diff helper — smart diff (summarizes large diffs) ───────────────────
@@ -1686,7 +1693,7 @@ PYEOF
   # Regenerate TASK.md to reflect changes
   if [[ -f "TASK.md" ]]; then
     info "Regenerating TASK.md..."
-    _cmd_spec_start "$id" --no-header 2>/dev/null || true
+    _generate_task_md "$id" "$file"
     ok "TASK.md updated"
   fi
 }
