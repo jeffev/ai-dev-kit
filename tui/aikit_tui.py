@@ -10,8 +10,10 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 from datetime import datetime
 from pathlib import Path
+from typing import Callable
 
 from textual import on, work
 from textual.app import App, ComposeResult
@@ -275,17 +277,57 @@ def _find_bash() -> str:
     return found if found else "bash"
 
 
-def run_aikit(root: Path, *args: str) -> tuple[int, str, str]:
+def _build_cmd(root: Path, args: tuple[str, ...]) -> list[str]:
     bash = _find_bash()
     aikit_script = os.environ.get("AIKIT_SCRIPT", "")
     if aikit_script and Path(aikit_script).exists():
-        cmd = [bash, aikit_script, *args]
-    else:
-        local = root / "ai-kit.sh"
-        cmd = [bash, str(local), *args] if local.exists() else ["ai-kit", *args]
+        return [bash, aikit_script, *args]
+    local = root / "ai-kit.sh"
+    return [bash, str(local), *args] if local.exists() else ["ai-kit", *args]
+
+
+def run_aikit(root: Path, *args: str) -> tuple[int, str, str]:
     try:
-        r = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True, encoding="utf-8", errors="replace")
+        r = subprocess.run(
+            _build_cmd(root, args), cwd=str(root),
+            capture_output=True, text=True, encoding="utf-8", errors="replace"
+        )
         return r.returncode, r.stdout or "", r.stderr or ""
+    except Exception as e:
+        return 1, "", str(e)
+
+
+def run_aikit_stream(
+    root: Path,
+    on_line: Callable[[str], None] | None,
+    *args: str,
+) -> tuple[int, str, str]:
+    """Run ai-kit and call on_line(text) for each output line (real-time)."""
+    try:
+        proc = subprocess.Popen(
+            _build_cmd(root, args), cwd=str(root),
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, encoding="utf-8", errors="replace"
+        )
+        stdout_lines: list[str] = []
+        stderr_buf: list[str] = []
+
+        def _read_stderr() -> None:
+            stderr_buf.append(proc.stderr.read() or "")
+
+        t = threading.Thread(target=_read_stderr, daemon=True)
+        t.start()
+
+        for raw in proc.stdout:
+            line = raw.rstrip()
+            stdout_lines.append(line)
+            clean = _strip_ansi(line).strip()
+            if clean and on_line:
+                on_line(clean[-80:])
+
+        proc.wait()
+        t.join(timeout=2)
+        return proc.returncode, "\n".join(stdout_lines), stderr_buf[0] if stderr_buf else ""
     except Exception as e:
         return 1, "", str(e)
 
@@ -321,6 +363,16 @@ class ChecklistItem(ListItem):
         box = "✔" if self.item_data["done"] else "○"
         cls = "done" if self.item_data["done"] else "todo"
         yield Label(f" {box}  {self.item_data['text']}", classes=cls)
+
+
+class SectionHeader(ListItem):
+    """Non-selectable section divider in the spec list."""
+    def __init__(self, text: str) -> None:
+        super().__init__(disabled=True)
+        self._text = text
+
+    def compose(self) -> ComposeResult:
+        yield Label(f" {self._text}", classes="spec-section-header")
 
 
 # ── Modals ────────────────────────────────────────────────────────────────────
@@ -409,6 +461,7 @@ class AikitTUI(App):
     }
     #spec-list { height: 1fr; }
     #new-spec-btn { dock: bottom; width: 100%; height: 3; }
+    .spec-section-header { color: $text-muted; text-style: bold; padding: 0 1; }
 
     #center-panel { width: 1fr; border-right: solid $primary-darken-3; }
     #spec-id-label {
@@ -608,8 +661,16 @@ class AikitTUI(App):
         self.specs = list_specs(self.root)
         lv = self.query_one("#spec-list", ListView)
         lv.clear()
-        for spec in self.specs:
-            lv.append(SpecItem(spec))
+        active = [s for s in self.specs if s["status"] in ("active", "draft")]
+        done   = [s for s in self.specs if s["status"] == "done"]
+        if active:
+            lv.append(SectionHeader("── ACTIVE ──"))
+            for spec in active:
+                lv.append(SpecItem(spec))
+        if done:
+            lv.append(SectionHeader("── DONE ──"))
+            for spec in done:
+                lv.append(SpecItem(spec))
 
     def load_status(self) -> None:
         self.query_one("#git-content", Static).update(get_git_status(self.root))
@@ -698,6 +759,11 @@ class AikitTUI(App):
         # Pre-populate spec tab content
         self.query_one("#spec-content", Static).update(spec["text"])
 
+        # Disable action buttons for closed specs
+        is_done = spec["status"] == "done"
+        for btn_id in ["btn-approve", "btn-start", "btn-review", "btn-close"]:
+            self.query_one(f"#{btn_id}", Button).disabled = is_done
+
     # ── Checklist click ───────────────────────────────────────────────────────
 
     @on(ListView.Selected, "#checklist")
@@ -738,7 +804,7 @@ class AikitTUI(App):
 
     @work(thread=True)
     def _run_new_spec(self, description: str) -> None:
-        rc, out, err = run_aikit(self.root, "spec", "new", description)
+        rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "new", description)
         self.call_from_thread(self._set_idle)
         self.call_from_thread(self.push_screen, ResultModal("New Spec", _strip_ansi(out + err).strip()))
         self.call_from_thread(self.load_specs)
@@ -753,7 +819,7 @@ class AikitTUI(App):
 
     @work(thread=True)
     def _run_approve(self, spec_id: str) -> None:
-        rc, out, err = run_aikit(self.root, "spec", "approve", spec_id)
+        rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "approve", spec_id)
         self.call_from_thread(self._set_idle)
         self.call_from_thread(self.push_screen, ResultModal(f"Approve {spec_id}", _strip_ansi(out + err).strip()))
         self.call_from_thread(self._reload_selected_spec)
@@ -768,7 +834,7 @@ class AikitTUI(App):
 
     @work(thread=True)
     def _run_start(self, spec_id: str) -> None:
-        rc, out, err = run_aikit(self.root, "spec", "start", spec_id)
+        rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "start", spec_id)
         self.call_from_thread(self._set_idle)
         self.call_from_thread(self.push_screen, ResultModal(f"Start {spec_id}", _strip_ansi(out + err).strip()))
         self.call_from_thread(self._reload_selected_spec)
@@ -783,7 +849,7 @@ class AikitTUI(App):
 
     @work(thread=True)
     def _run_review(self, spec_id: str) -> None:
-        rc, out, err = run_aikit(self.root, "spec", "review", spec_id)
+        rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "review", spec_id)
         self.call_from_thread(self._set_idle)
         self.call_from_thread(
             self.push_screen, ResultModal(f"Review {spec_id}", _strip_ansi(out + err).strip())
@@ -800,7 +866,7 @@ class AikitTUI(App):
 
     @work(thread=True)
     def _run_close(self, spec_id: str) -> None:
-        rc, out, err = run_aikit(self.root, "spec", "close", spec_id, "--force")
+        rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "close", spec_id, "--force")
         self.call_from_thread(self._set_idle)
         self.call_from_thread(
             self.push_screen, ResultModal(f"Close {spec_id}", _strip_ansi(out + err).strip())
@@ -817,6 +883,12 @@ class AikitTUI(App):
         self.notify("Refreshed.", severity="information")
 
     # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _stream_to_busy(self, line: str) -> None:
+        """Called from worker thread with each output line."""
+        self.call_from_thread(
+            self.query_one("#busy-label", Label).update, f"⟳ {line}"
+        )
 
     def _set_busy(self, message: str) -> None:
         self.query_one("#busy-label", Label).update(message)
