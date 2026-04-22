@@ -919,7 +919,7 @@ class AikitTUI(App):
         if spec["status"] != "active":
             self.notify("Start the spec first to generate TASK.md.", severity="warning")
             return
-        async with self.suspend():
+        with self.suspend():
             subprocess.run(_find_claude(), cwd=str(self.root))
         self._reload_selected_spec()
         self.load_status()
