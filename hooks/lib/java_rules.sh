@@ -8,7 +8,7 @@ run_java_rules() {
   local content_file="$2"
 
   local is_test=false
-  echo "$file_path" | grep -qiE '(/test/|Test\.java$)' && is_test=true
+  echo "$file_path" | grep -qiE '(/test/|Test\.java$)' && is_test=true || true
 
   _java_sql_injection "$file_path" "$content_file"
 
@@ -46,15 +46,15 @@ _java_unauthenticated_endpoint() {
   local content_file="$2"
 
   # Only applies to @RestController or @Controller files
-  grep -q "@RestController\|@Controller" "$content_file" 2>/dev/null || return
+  grep -q "@RestController\|@Controller" "$content_file" 2>/dev/null || return 0
 
   # Check for HTTP mapping annotations
   local has_mapping
   has_mapping=$(grep -cP '@(GetMapping|PostMapping|PutMapping|DeleteMapping|PatchMapping|RequestMapping)' "$content_file" 2>/dev/null || echo 0)
-  [[ "$has_mapping" -eq 0 ]] && return
+  [[ "$has_mapping" -eq 0 ]] && return 0 || true
 
-  # If no @PreAuthorize anywhere in the file, flag it
-  if ! grep -qP '@PreAuthorize|@Secured|permitAll|@Public' "$content_file" 2>/dev/null; then
+  # If no @PreAuthorize anywhere in the file (not in comments), flag it
+  if ! grep -P '@PreAuthorize|@Secured|permitAll|@Public' "$content_file" 2>/dev/null | grep -qvP '^\s*\d*\s*//'; then
     local line_num
     line_num=$(grep -nP '@(GetMapping|PostMapping|PutMapping|DeleteMapping|PatchMapping)' "$content_file" 2>/dev/null | head -1 | grep -oP '^\d+')
     FINDINGS+=("HIGH|J-002|$file_path|${line_num:-1}|Controller has HTTP endpoints but no @PreAuthorize annotation. Add @PreAuthorize or document why endpoints are public with: // ai-kit:ignore J-002|")
@@ -102,7 +102,7 @@ _java_entity_missing_equals() {
   local file_path="$1"
   local content_file="$2"
 
-  grep -q "@Entity" "$content_file" 2>/dev/null || return
+  grep -q "@Entity" "$content_file" 2>/dev/null || return 0
 
   local has_equals
   has_equals=$(grep -cP 'equals\s*\(|@EqualsAndHashCode|@Data' "$content_file" 2>/dev/null || echo 0)
@@ -144,8 +144,8 @@ _java_scheduled_without_async() {
   local file_path="$1"
   local content_file="$2"
 
-  grep -q "@Scheduled" "$content_file" 2>/dev/null || return
-  grep -q "@Async\|@EnableAsync" "$content_file" 2>/dev/null && return
+  grep -q "@Scheduled" "$content_file" 2>/dev/null || return 0
+  grep -q "@Async\|@EnableAsync" "$content_file" 2>/dev/null && return 0 || true
 
   local match
   match=$(grep -nP '@Scheduled' "$content_file" 2>/dev/null | head -1) || true

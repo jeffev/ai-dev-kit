@@ -25,27 +25,28 @@ FINDINGS=()
 
 STDIN_DATA=$(cat)
 
-# Normalize Windows backslashes to forward slashes
-STDIN_DATA=$(echo "$STDIN_DATA" | sed 's|\\\\|/|g; s|\\"|"|g')
+# Extract tool_name, file_path, and content via Python (handles JSON correctly,
+# normalizes Windows backslash paths without corrupting the content field)
+read -r TOOL_NAME FILE_PATH <<< "$(echo "$STDIN_DATA" | ${PYTHON_CMD:-python3} -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    tool_name = data.get('tool_name', '')
+    inp = data.get('tool_input', {})
+    file_path = inp.get('file_path', '').replace('\\\\', '/')
+    print(tool_name + '\t' + file_path)
+except Exception:
+    print('\t')
+" 2>/dev/null || echo -e '\t')"
 
-extract_json_field() {
-  local json="$1"
-  local field="$2"
-  # Try jq first, fall back to grep/sed
-  if command -v jq &>/dev/null; then
-    echo "$json" | jq -r ".$field // empty" 2>/dev/null
-  else
-    echo "$json" | grep -oP "\"$field\":\s*\"\K[^\"]*" | head -1
-  fi
-}
-
-TOOL_NAME=$(extract_json_field "$STDIN_DATA" "tool_name")
-FILE_PATH=$(extract_json_field "$(echo "$STDIN_DATA" | grep -oP '"tool_input"\s*:\s*\{[^}]+')" "file_path")
 CONTENT=$(echo "$STDIN_DATA" | ${PYTHON_CMD:-python3} -c "
 import sys, json
-data = json.load(sys.stdin)
-inp = data.get('tool_input', {})
-print(inp.get('content', inp.get('new_string', '')))
+try:
+    data = json.load(sys.stdin)
+    inp = data.get('tool_input', {})
+    print(inp.get('content', inp.get('new_string', '')))
+except Exception:
+    pass
 " 2>/dev/null || echo "")
 
 # Only audit write/edit operations

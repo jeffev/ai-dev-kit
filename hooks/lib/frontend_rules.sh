@@ -8,7 +8,7 @@ run_frontend_rules() {
   local content_file="$2"
 
   local is_test=false
-  echo "$file_path" | grep -qiE '(\.spec\.|\.test\.|__tests__)' && is_test=true
+  echo "$file_path" | grep -qiE '(\.spec\.|\.test\.|__tests__)' && is_test=true || true
 
   _frontend_console_log "$file_path" "$content_file"
 
@@ -53,12 +53,12 @@ _frontend_subscribe_leak() {
   local content_file="$2"
 
   # Only applies to Angular .ts files
-  echo "$file_path" | grep -qiE '\.ts$' || return
-  grep -qiP '@Component|@Injectable|@Directive|@Pipe' "$content_file" 2>/dev/null || return
+  echo "$file_path" | grep -qiE '\.ts$' || return 0
+  grep -qiP '@Component|@Injectable|@Directive|@Pipe' "$content_file" 2>/dev/null || return 0
 
   local has_subscribe
   has_subscribe=$(grep -cP '\.subscribe\s*\(' "$content_file" 2>/dev/null || echo 0)
-  [[ "$has_subscribe" -eq 0 ]] && return
+  [[ "$has_subscribe" -eq 0 ]] && return 0 || true
 
   if ! grep -qP 'takeUntil|takeUntilDestroyed|unsubscribe\(\)|async\s+pipe|Subscription' "$content_file" 2>/dev/null; then
     local line_num
@@ -71,7 +71,7 @@ _frontend_env_secrets() {
   local file_path="$1"
   local content_file="$2"
 
-  echo "$file_path" | grep -qiE '(environment\.(ts|js|prod|staging)|\.env(\.|$)|config\.(ts|js))' || return
+  echo "$file_path" | grep -qiE '(environment\.(ts|js|prod|staging)|\.env(\.|$)|config\.(ts|js))' || return 0
 
   local match
   match=$(grep -inP '(apiKey|api_key|secret|password|token|privateKey)\s*[=:]\s*["'"'"'][^"'"'"'$\{]{4,}["'"'"']' "$content_file" 2>/dev/null | head -1) || true
@@ -87,7 +87,7 @@ _frontend_useeffect_missing_deps() {
   local content_file="$2"
 
   # Only React files
-  echo "$file_path" | grep -qiE '\.(tsx|jsx)$' || return
+  echo "$file_path" | grep -qiE '\.(tsx|jsx)$' || return 0
 
   local match
   match=$(grep -inP 'useEffect\s*\(\s*\(' "$content_file" 2>/dev/null | while IFS= read -r line; do
@@ -115,8 +115,8 @@ _frontend_hardcoded_route() {
   local content_file="$2"
 
   # Only Angular .ts files
-  echo "$file_path" | grep -qiE '\.ts$' || return
-  grep -qiP '@Component|@Injectable' "$content_file" 2>/dev/null || return
+  echo "$file_path" | grep -qiE '\.ts$' || return 0
+  grep -qiP '@Component|@Injectable' "$content_file" 2>/dev/null || return 0
 
   local match
   match=$(grep -inP 'this\.router\.navigate\s*\(\s*\[[\s'"'"'"]\/' "$content_file" 2>/dev/null | head -1) || true
@@ -132,8 +132,8 @@ _frontend_direct_dom() {
   local content_file="$2"
 
   # Only Angular .ts component files
-  echo "$file_path" | grep -qiE '\.ts$' || return
-  grep -qiP '@Component|@Directive' "$content_file" 2>/dev/null || return
+  echo "$file_path" | grep -qiE '\.ts$' || return 0
+  grep -qiP '@Component|@Directive' "$content_file" 2>/dev/null || return 0
 
   local match
   match=$(grep -inP 'document\.(getElementById|querySelector|querySelectorAll|getElementsBy)\s*\(' "$content_file" 2>/dev/null | head -1) || true
