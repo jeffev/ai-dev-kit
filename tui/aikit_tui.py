@@ -487,29 +487,47 @@ class AikitTUI(App):
         def handle(description: str | None) -> None:
             if not description:
                 return
-            rc, out, err = run_aikit(self.root, "spec", "new", description)
-            self.push_screen(ResultModal("New Spec", (out + err).strip()))
-            self.load_specs()
+            self._set_busy("⟳ Creating spec (calling AI)…")
+            self._run_new_spec(description)
 
         self.push_screen(InputModal("New Spec", "Describe the feature or task…"), handle)
+
+    @work(thread=True)
+    def _run_new_spec(self, description: str) -> None:
+        rc, out, err = run_aikit(self.root, "spec", "new", description)
+        self.call_from_thread(self._set_idle)
+        self.call_from_thread(self.push_screen, ResultModal("New Spec", (out + err).strip()))
+        self.call_from_thread(self.load_specs)
 
     @on(Button.Pressed, "#btn-approve")
     def action_approve(self) -> None:
         spec = self._require_spec()
         if spec is None:
             return
-        rc, out, err = run_aikit(self.root, "spec", "approve", spec["id"])
-        self.push_screen(ResultModal(f"Approve {spec['id']}", (out + err).strip()))
-        self._reload_selected_spec()
+        self._set_busy("⟳ Approving…")
+        self._run_approve(spec["id"])
+
+    @work(thread=True)
+    def _run_approve(self, spec_id: str) -> None:
+        rc, out, err = run_aikit(self.root, "spec", "approve", spec_id)
+        self.call_from_thread(self._set_idle)
+        self.call_from_thread(self.push_screen, ResultModal(f"Approve {spec_id}", (out + err).strip()))
+        self.call_from_thread(self._reload_selected_spec)
 
     @on(Button.Pressed, "#btn-start")
     def action_start(self) -> None:
         spec = self._require_spec()
         if spec is None:
             return
-        rc, out, err = run_aikit(self.root, "spec", "start", spec["id"])
-        self.push_screen(ResultModal(f"Start {spec['id']}", (out + err).strip()))
-        self._reload_selected_spec()
+        self._set_busy("⟳ Starting spec (calling AI)…")
+        self._run_start(spec["id"])
+
+    @work(thread=True)
+    def _run_start(self, spec_id: str) -> None:
+        rc, out, err = run_aikit(self.root, "spec", "start", spec_id)
+        self.call_from_thread(self._set_idle)
+        self.call_from_thread(self.push_screen, ResultModal(f"Start {spec_id}", (out + err).strip()))
+        self.call_from_thread(self._reload_selected_spec)
 
     @on(Button.Pressed, "#btn-review")
     def btn_review_pressed(self) -> None:
