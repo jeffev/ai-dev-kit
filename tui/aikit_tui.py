@@ -669,11 +669,16 @@ class AikitTUI(App):
         self.specs = list_specs(self.root)
         lv = self.query_one("#spec-list", ListView)
         lv.clear()
-        active = [s for s in self.specs if s["status"] in ("active", "draft")]
+        active = [s for s in self.specs if s["status"] == "active"]
+        draft  = [s for s in self.specs if s["status"] == "draft"]
         done   = [s for s in self.specs if s["status"] == "done"]
         if active:
             lv.append(SectionHeader("── ACTIVE ──"))
             for spec in active:
+                lv.append(SpecItem(spec))
+        if draft:
+            lv.append(SectionHeader("── DRAFT ──"))
+            for spec in draft:
                 lv.append(SpecItem(spec))
         if done:
             lv.append(SectionHeader("── DONE ──"))
@@ -817,6 +822,7 @@ class AikitTUI(App):
     @work(thread=True)
     def _run_new_spec(self, description: str) -> None:
         rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "new", description)
+        self.call_from_thread(self._append_log, "\n✔ Done — check the modal for details" if rc == 0 else "\n✖ Failed")
         self.call_from_thread(self._set_idle)
         self.call_from_thread(self.push_screen, ResultModal("New Spec", _strip_ansi(out + err).strip()))
         self.call_from_thread(self.load_specs)
@@ -832,6 +838,7 @@ class AikitTUI(App):
     @work(thread=True)
     def _run_approve(self, spec_id: str) -> None:
         rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "approve", spec_id)
+        self.call_from_thread(self._append_log, "\n✔ Approved" if rc == 0 else "\n✖ Failed")
         self.call_from_thread(self._set_idle)
         self.call_from_thread(self.push_screen, ResultModal(f"Approve {spec_id}", _strip_ansi(out + err).strip()))
         self.call_from_thread(self._reload_selected_spec)
@@ -847,8 +854,8 @@ class AikitTUI(App):
     @work(thread=True)
     def _run_start(self, spec_id: str) -> None:
         rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "start", spec_id)
+        self.call_from_thread(self._append_log, "\n✔ Spec activated — TASK.md written" if rc == 0 else "\n✖ Failed")
         self.call_from_thread(self._set_idle)
-        self.call_from_thread(self.push_screen, ResultModal(f"Start {spec_id}", _strip_ansi(out + err).strip()))
         self.call_from_thread(self._reload_selected_spec)
 
     @on(Button.Pressed, "#btn-review")
@@ -862,10 +869,9 @@ class AikitTUI(App):
     @work(thread=True)
     def _run_review(self, spec_id: str) -> None:
         rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "review", spec_id)
+        self.call_from_thread(self._append_log, "\n✔ Review complete — see modal" if rc == 0 else "\n✖ Review failed")
         self.call_from_thread(self._set_idle)
-        self.call_from_thread(
-            self.push_screen, ResultModal(f"Review {spec_id}", _strip_ansi(out + err).strip())
-        )
+        self.call_from_thread(self.push_screen, ResultModal(f"Review {spec_id}", _strip_ansi(out + err).strip()))
         self.call_from_thread(self._reload_selected_spec)
 
     @on(Button.Pressed, "#btn-close")
@@ -879,10 +885,9 @@ class AikitTUI(App):
     @work(thread=True)
     def _run_close(self, spec_id: str) -> None:
         rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "close", spec_id, "--force")
+        self.call_from_thread(self._append_log, "\n✔ Spec closed — moved to done/" if rc == 0 else "\n✖ Close failed")
         self.call_from_thread(self._set_idle)
-        self.call_from_thread(
-            self.push_screen, ResultModal(f"Close {spec_id}", _strip_ansi(out + err).strip())
-        )
+        self.call_from_thread(self.push_screen, ResultModal(f"Close {spec_id}", _strip_ansi(out + err).strip()))
         self.call_from_thread(self.load_specs)
 
     # ── Key actions ───────────────────────────────────────────────────────────
@@ -905,6 +910,11 @@ class AikitTUI(App):
     def _apply_log_line(self, last_line: str, full: str) -> None:
         self.query_one("#busy-label", Label).update(f"⟳ {last_line[-60:]}")
         self.query_one("#log-content", Static).update(full)
+        self.query_one("#tab-log", ScrollableContainer).scroll_end(animate=False)
+
+    def _append_log(self, text: str) -> None:
+        self._log_lines.append(text)
+        self.query_one("#log-content", Static).update("\n".join(self._log_lines))
         self.query_one("#tab-log", ScrollableContainer).scroll_end(animate=False)
 
     def _set_busy(self, message: str) -> None:
