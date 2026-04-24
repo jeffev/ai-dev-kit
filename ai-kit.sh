@@ -641,6 +641,10 @@ main() {
       _cmd_tui
       ;;
 
+    upgrade)
+      _cmd_upgrade
+      ;;
+
     help|*)
       echo "Usage: bash ai-kit.sh <command>"
       echo ""
@@ -649,6 +653,7 @@ main() {
       echo "  update                 Update hooks and commands from the ai-dev-kit repo"
       echo "  doctor                 Diagnose hook installation and configuration"
       echo "  tui                    Open the interactive terminal UI"
+      echo "  upgrade                Pull latest ai-dev-kit and reapply hooks"
       echo "  stats                  Show audit statistics from audit.log"
       echo "  audit-test <file>      Run the auditor manually against a file"
       echo "  audit-report [file]    Generate a markdown report from audit.log"
@@ -668,6 +673,51 @@ main() {
       echo "  spec show <id>               Print a spec"
       ;;
   esac
+}
+
+# ── Command: upgrade ─────────────────────────────────────────────────────────
+_cmd_upgrade() {
+  header "upgrade" "Upgrading AI Dev Kit"
+
+  if ! git -C "$AIKIT_DIR" rev-parse --git-dir &>/dev/null 2>&1; then
+    fail "AI Dev Kit directory is not a git repo: $AIKIT_DIR"
+    fail "Clone it from GitHub to enable upgrades."
+    exit 1
+  fi
+
+  local before
+  before=$(git -C "$AIKIT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
+
+  local branch
+  branch=$(git -C "$AIKIT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+
+  info "Pulling latest changes on branch '$branch'..."
+  if ! git -C "$AIKIT_DIR" pull; then
+    fail "git pull failed — resolve conflicts manually in $AIKIT_DIR"
+    exit 1
+  fi
+
+  local after
+  after=$(git -C "$AIKIT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
+
+  if [[ "$before" == "$after" ]]; then
+    ok "Already up to date."
+  else
+    ok "Updated: ${before:0:7} → ${after:0:7}"
+    git -C "$AIKIT_DIR" log --oneline "${before}..${after}" 2>/dev/null | while read -r line; do
+      info "  $line"
+    done
+  fi
+
+  # Reapply hooks to current project if initialized
+  if [[ -d ".claude/hooks" ]]; then
+    echo ""
+    info "Reapplying hooks to current project..."
+    _cmd_update
+  else
+    echo ""
+    info "No .claude/hooks found in current directory — run 'ai-kit init' to initialize."
+  fi
 }
 
 # ── Command: update ───────────────────────────────────────────────────────────

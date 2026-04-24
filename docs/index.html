@@ -307,6 +307,32 @@
     /* ── DIVIDER ── */
     .divider { border: none; border-top: 1px solid var(--border); }
 
+    /* ── FAQ ── */
+    .faq-item { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .faq-q {
+      width: 100%; background: var(--bg3); border: none; color: var(--text);
+      padding: 1rem 1.25rem; font-size: .95rem; font-family: inherit;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; text-align: left; transition: background .2s;
+    }
+    .faq-q:hover { background: var(--bg2); }
+    .faq-q.open { background: var(--bg2); color: var(--accent); border-bottom: 1px solid var(--border); }
+    .faq-chevron { font-size: .7rem; color: var(--muted); transition: transform .2s; flex-shrink: 0; margin-left: .75rem; }
+    .faq-q.open .faq-chevron { transform: rotate(180deg); }
+    .faq-a {
+      display: none; padding: 1rem 1.25rem;
+      font-size: .9rem; color: var(--muted); background: var(--bg2);
+    }
+    .faq-a.open { display: block; }
+    .faq-a p { margin-bottom: .75rem; }
+    .faq-a p:last-child { margin-bottom: 0; }
+    .faq-a pre {
+      background: #010409; border: 1px solid var(--border); border-radius: 6px;
+      padding: .75rem 1rem; font-family: 'JetBrains Mono', monospace;
+      font-size: .82rem; margin: .5rem 0 .75rem; overflow-x: auto;
+      color: var(--accent2);
+    }
+
     @media (max-width: 640px) {
       .nav-links { display: none; }
       .hero { padding: 3rem 1.25rem 2.5rem; }
@@ -326,6 +352,7 @@
     <a href="#spec">Spec-driven</a>
     <a href="#rules">Rules</a>
     <a href="#installation">Installation</a>
+    <a href="#faq">FAQ</a>
   </div>
   <a class="nav-cta" href="https://github.com/jeffev/ai-dev-kit">GitHub →</a>
 </nav>
@@ -1240,6 +1267,104 @@ ai-kit audit-test src/main/java/MyClass.java</pre></div>
   </div>
 </section>
 
+<!-- FAQ -->
+<section id="faq" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="section-inner">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">Common questions</h2>
+
+    <div style="display: flex; flex-direction: column; gap: .6rem; max-width: 760px;">
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>My spec is stuck in <code>in-progress</code> — what do I do?</span>
+          <span class="faq-chevron">▼</span>
+        </button>
+        <div class="faq-a">
+          <p>You can close it manually even if not all tasks are done:</p>
+          <pre>ai-kit spec close SPEC-001 --force</pre>
+          <p>The <code>--force</code> flag skips the interactive confirmation prompt. The spec will be archived in <code>.aikit-specs/done/</code> with its current state.</p>
+          <p>In the TUI, click the <strong>Close</strong> button — it will show a review modal. Click <strong>Close</strong> in the modal to confirm.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>The <code>✦ Claude</code> button is disabled — why?</span>
+          <span class="faq-chevron">▼</span>
+        </button>
+        <div class="faq-a">
+          <p>The <strong>✦ Claude</strong> button is only enabled when the spec status is <code>active</code> (i.e. after running <strong>Start</strong>). This ensures <code>TASK.md</code> exists before opening Claude.</p>
+          <p>The flow is: <strong>Approve</strong> → <strong>Start</strong> → <strong>✦ Claude</strong>.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>Review found issues — how do I fix them?</span>
+          <span class="faq-chevron">▼</span>
+        </button>
+        <div class="faq-a">
+          <p>When the Review modal opens, click <strong>✦ Fix with Claude</strong>. The TUI will suspend and Claude will open with the full review output pre-loaded as context — Claude knows exactly what to fix without you having to paste anything.</p>
+          <p>After Claude finishes, exit it (<code>/exit</code> or <code>Ctrl+C</code>) to return to the TUI. Run <strong>Review</strong> again to confirm everything is resolved before closing.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>How do I check spec progress without opening the TUI?</span>
+          <span class="faq-chevron">▼</span>
+        </button>
+        <div class="faq-a">
+          <p>Use <code>spec check</code> — it's fast, requires no AI, and works directly in the terminal:</p>
+          <pre>ai-kit spec check           # uses the currently active spec
+ai-kit spec check SPEC-001  # check a specific spec</pre>
+          <p>It shows the checklist (done/pending), which expected files have been touched, and any out-of-scope changes detected in git diff.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>How do I update AI Dev Kit to the latest version?</span>
+          <span class="faq-chevron">▼</span>
+        </button>
+        <div class="faq-a">
+          <p>Run <code>ai-kit upgrade</code> from your project directory:</p>
+          <pre>ai-kit upgrade</pre>
+          <p>This pulls the latest changes from the AI Dev Kit repository and automatically reapplies hooks and commands to your current project. No need to run <code>init</code> again.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span><code>ai-kit tui</code> fails with a textual import error</span>
+          <span class="faq-chevron">▼</span>
+        </button>
+        <div class="faq-a">
+          <p>The TUI requires the <code>textual</code> Python library. Running <code>ai-kit tui</code> will attempt to install it automatically, but if that fails:</p>
+          <pre>pip install textual
+# or
+pip3 install textual</pre>
+          <p>If you're on Windows and <code>python3</code> points to the Microsoft Store stub, use <code>python</code> instead, or install Python 3 from <a href="https://python.org">python.org</a>.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>TASK.md was deleted — how do I regenerate it?</span>
+          <span class="faq-chevron">▼</span>
+        </button>
+        <div class="faq-a">
+          <p>Run <code>spec start</code> again on the active spec — it regenerates <code>TASK.md</code> without resetting the status or start commit:</p>
+          <pre>ai-kit spec start SPEC-001</pre>
+          <p>If the spec is already <code>in-progress</code>, it will warn you but still regenerate the file.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <!-- FOOTER -->
 <footer>
   <p>
@@ -1268,6 +1393,13 @@ ai-kit audit-test src/main/java/MyClass.java</pre></div>
     btn.style.background = 'rgba(88,166,255,.15)';
     btn.style.borderColor = 'var(--accent)';
     btn.style.color = 'var(--accent)';
+  }
+
+  function toggleFaq(btn) {
+    const answer = btn.nextElementSibling;
+    const isOpen = btn.classList.contains('open');
+    btn.classList.toggle('open', !isOpen);
+    answer.classList.toggle('open', !isOpen);
   }
 
   function showSpecTab(name, btn) {

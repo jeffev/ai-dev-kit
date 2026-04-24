@@ -362,7 +362,8 @@ class SpecItem(ListItem):
         else:
             icon = "·"
         badge = f" [{s['done']}/{s['total']}]" if s["total"] > 0 else ""
-        yield Label(f" {icon} {s['id']}{badge}")
+        color_cls = {"active": "spec-item-active", "draft": "spec-item-draft", "done": "spec-item-done"}.get(s["status"], "")
+        yield Label(f" {icon} {s['id']}{badge}", classes=color_cls)
 
 
 class ChecklistItem(ListItem):
@@ -572,6 +573,11 @@ class AikitTUI(App):
     #audit-container { height: 1fr; padding: 1; overflow-y: auto; }
     .section-label { color: $accent; text-style: bold; margin-bottom: 1; }
 
+    /* ── Spec list item colors by status ── */
+    .spec-item-active { color: $success; }
+    .spec-item-draft  { color: $warning; }
+    .spec-item-done   { color: $text-muted; }
+
     /* ── Checklist item colors ── */
     .done { color: $success; }
     .todo { color: $accent; }
@@ -622,11 +628,16 @@ class AikitTUI(App):
     selected_spec: reactive[dict | None] = reactive(None)
     active_tab: reactive[str] = reactive("checklist")
 
+    _SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
     def __init__(self) -> None:
         super().__init__()
         self.root = find_project_root()
         self.specs: list[dict] = []
         self._log_lines: list[str] = []
+        self._spinner_index: int = 0
+        self._spinner_timer = None
+        self._review_context: str = ""
 
     # ── Compose ───────────────────────────────────────────────────────────────
 
@@ -898,17 +909,19 @@ class AikitTUI(App):
     @work(thread=True)
     def _run_review(self, spec_id: str) -> None:
         rc, out, err = run_aikit_stream(self.root, self._stream_to_busy, "spec", "review", spec_id)
+        review_text = _strip_ansi(out + err).strip()
         self.call_from_thread(self._append_log, "\n✔ Review complete" if rc == 0 else "\n✖ Review failed")
         self.call_from_thread(self._set_idle)
         self.call_from_thread(self._reload_selected_spec)
 
         def _on_review_closed(fix: bool) -> None:
             if fix:
+                self._review_context = review_text
                 self.call_later(self.action_run_claude)
 
         self.call_from_thread(
             self.push_screen,
-            ResultModal(f"Review {spec_id}", _strip_ansi(out + err).strip(), fix_with_claude=True),
+            ResultModal(f"Review {spec_id}", review_text, fix_with_claude=True),
             _on_review_closed,
         )
 
@@ -941,11 +954,20 @@ class AikitTUI(App):
         if spec["status"] != "active":
             self.notify("Start the spec first to generate TASK.md.", severity="warning")
             return
-        initial_prompt = (
-            f"Read TASK.md and implement all pending tasks for {spec['id']}. "
-            "Follow the spec scope exactly. When done, run: ai-kit spec update tick <N> "
-            "for each completed task."
-        )
+        if self._review_context:
+            initial_prompt = (
+                f"The AI review of {spec['id']} found the following issues:\n\n"
+                f"{self._review_context}\n\n"
+                "Read TASK.md and fix all the issues listed in the review above. "
+                "When each task is done, run: ai-kit spec update tick <N>."
+            )
+            self._review_context = ""
+        else:
+            initial_prompt = (
+                f"Read TASK.md and implement all pending tasks for {spec['id']}. "
+                "Follow the spec scope exactly. When done, run: ai-kit spec update tick <N> "
+                "for each completed task."
+            )
         with self.suspend():
             subprocess.run([*_find_claude(), initial_prompt], cwd=str(self.root))
         self._reload_selected_spec()
@@ -970,9 +992,14 @@ class AikitTUI(App):
         self.call_from_thread(self._apply_log_line, line, content)
 
     def _apply_log_line(self, last_line: str, full: str) -> None:
-        self.query_one("#busy-label", Label).update(f"⟳ {last_line[-60:]}")
         self.query_one("#log-content", Static).update(full)
         self.query_one("#tab-log", ScrollableContainer).scroll_end(animate=False)
+
+    def _tick_spinner(self) -> None:
+        self._spinner_index = (self._spinner_index + 1) % len(self._SPINNER)
+        frame = self._SPINNER[self._spinner_index]
+        last = self._log_lines[-1] if self._log_lines else "running…"
+        self.query_one("#busy-label", Label).update(f"{frame} {last[-60:]}")
 
     def _append_log(self, text: str) -> None:
         self._log_lines.append(text)
@@ -987,8 +1014,13 @@ class AikitTUI(App):
         self._switch_tab("log")
         for btn_id in ["btn-approve", "btn-start", "btn-run-claude", "btn-review", "btn-close"]:
             self.query_one(f"#{btn_id}", Button).disabled = True
+        self._spinner_index = 0
+        self._spinner_timer = self.set_interval(0.1, self._tick_spinner)
 
     def _set_idle(self) -> None:
+        if self._spinner_timer is not None:
+            self._spinner_timer.stop()
+            self._spinner_timer = None
         self.query_one("#busy-label", Label).update("")
         for btn_id in ["btn-approve", "btn-start", "btn-review", "btn-close"]:
             self.query_one(f"#{btn_id}", Button).disabled = False
