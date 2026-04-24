@@ -968,11 +968,10 @@ class AikitTUI(App):
                 "Follow the spec scope exactly. When done, run: ai-kit spec update tick <N> "
                 "for each completed task."
             )
-        with self.suspend():
-            subprocess.run([*_find_claude(), initial_prompt], cwd=str(self.root))
-        self._reload_selected_spec()
-        self.load_status()
-        self.notify("Claude session ended — spec refreshed.", severity="information")
+        # Write launch file — ai-kit.sh picks this up, runs claude, then relaunches TUI
+        launch_file = Path.home() / ".aikit-claude-launch"
+        launch_file.write_text(f"{self.root}\n{initial_prompt}", encoding="utf-8")
+        self.exit()
 
     # ── Key actions ───────────────────────────────────────────────────────────
 

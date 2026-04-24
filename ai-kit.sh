@@ -1084,8 +1084,38 @@ _cmd_tui() {
     ok "textual installed."
   fi
 
-  AIKIT_SCRIPT="$(cd "$AIKIT_DIR" && pwd)/ai-kit.sh" \
-    "${PYTHON_CMD:-python3}" "$tui_script"
+  local launch_file="$HOME/.aikit-claude-launch"
+  rm -f "$launch_file"
+
+  while true; do
+    AIKIT_SCRIPT="$(cd "$AIKIT_DIR" && pwd)/ai-kit.sh" \
+      "${PYTHON_CMD:-python3}" "$tui_script"
+
+    # Check if TUI exited to launch Claude
+    if [[ -f "$launch_file" ]]; then
+      local project_dir claude_prompt
+      project_dir=$(head -1 "$launch_file")
+      claude_prompt=$(tail -n +2 "$launch_file")
+      rm -f "$launch_file"
+
+      echo ""
+      info "Launching Claude Code in: $project_dir"
+      echo ""
+
+      if command -v claude &>/dev/null; then
+        (cd "$project_dir" && claude "$claude_prompt")
+      else
+        warn "claude CLI not found — install Claude Code first."
+      fi
+
+      echo ""
+      info "Returning to AI Dev Kit TUI…"
+      echo ""
+      # Loop continues → relaunches TUI
+    else
+      break
+    fi
+  done
 }
 
 # ── Command: install-git-hook ─────────────────────────────────────────────────
